@@ -125,14 +125,22 @@ tbody tr:hover:not(:last-child){background:#faf9f7}
   </div>
   <div id="upload-log" style="margin-top:1rem"></div>
   <div id="data-list" style="margin-top:1.5rem"></div>
+  <div style="margin-top:1.5rem">
+    <button onclick="clearAllData()" style="padding:8px 18px;border-radius:6px;border:1px solid var(--red);color:var(--red);background:transparent;cursor:pointer;font-size:13px;">🗑 全データをクリア</button>
+    <span style="font-size:11px;color:var(--text3);margin-left:10px">ブラウザに保存されたデータを削除します</span>
+  </div>
 </div>
 
 </div>
 </div>
 
 <script>
+const STORAGE_KEY='gyoseki_allData_v1';
+function saveData(){try{localStorage.setItem(STORAGE_KEY,JSON.stringify(allData));}catch(e){}}
+function loadData(){try{const s=localStorage.getItem(STORAGE_KEY);if(s)allData=JSON.parse(s);}catch(e){}}
 let allData={};
-let selectedMonth=null;
+loadData();
+let selectedMonth=Object.keys(allData).sort().pop()||null;
 let activeTrendBrands=new Set();
 const BRANDS=['ハリミツ','BORIJIN','墨族','蛸墨族','MAG','山波','OEM'];
 const COLORS=['#3278cc','#1a9e72','#e8963a','#9b5de5','#e04444','#0bb4b4','#b87215'];
@@ -219,6 +227,7 @@ function handleFiles(files){
         if(keys.length>0){
           keys.forEach(k=>{allData[k]=months[k];});
           selectedMonth=keys[keys.length-1];
+          saveData();
           addLog(f.name,keys.length+'ヶ月分のデータを読み込みました',true);
           renderAll();
         } else {
@@ -319,7 +328,8 @@ function renderDataList(){
   h+='</tbody></table></div>';el.innerHTML=h;
 }
 
-function delMonth(k){delete allData[k];if(selectedMonth===k)selectedMonth=sortedMonths()[0]||null;renderAll();}
+function delMonth(k){delete allData[k];if(selectedMonth===k)selectedMonth=sortedMonths()[0]||null;saveData();renderAll();}
+function clearAllData(){if(confirm('全データを削除しますか？')){allData={};selectedMonth=null;localStorage.removeItem(STORAGE_KEY);renderAll();}}
 
 // OVERVIEW
 function renderOverview(){
@@ -521,6 +531,9 @@ function switchView(id,btn){
   document.getElementById(id).classList.add('active');
   btn.classList.add('active');
 }
+
+// ページ起動時に保存データを表示
+if(Object.keys(allData).length>0)renderAll();
 </script>
 </body>
 </html>
