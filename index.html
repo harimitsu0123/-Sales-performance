@@ -150,8 +150,17 @@ let allData={};
 loadData();
 let selectedMonth=Object.keys(allData).sort().pop()||null;
 let activeTrendBrands=new Set();
-const BRANDS=['ハリミツ','BORIJIN','墨族','蛸墨族','MAG','山波','OEM'];
-const COLORS=['#3278cc','#1a9e72','#e8963a','#9b5de5','#e04444','#0bb4b4','#b87215'];
+const COLORS=['#3278cc','#1a9e72','#e8963a','#9b5de5','#e04444','#0bb4b4','#b87215','#e84393','#00b4d8'];
+// ブランド一覧をデータから動的に取得（総合計を除く）
+function getBrands(){
+  const seen=new Set();
+  Object.values(allData).forEach(d=>[...d.tangetsu,...d.ruikei].forEach(r=>{
+    if(!r.name.includes('総'))seen.add(r.name);
+  }));
+  return [...seen];
+}
+// 後方互換用（固定リストが必要な箇所で使用）
+const BRANDS_FALLBACK=['ハリミツ','BORIJIN','墨族','蛸墨族','MAG','山波','OEM','その他'];
 // ブランド名の表記揺れを統一
 function normBrand(name){
   if(!name)return name;
@@ -414,6 +423,7 @@ function renderTrend(){
   const el=document.getElementById('trend-content');
   const months=sortedMonths();
   if(!months.length){el.innerHTML='<div class="empty-state"><div class="emoji">📈</div><p>データをアップロードすると推移グラフが表示されます</p></div>';renderTrendFilter([]);return;}
+  const BRANDS=getBrands();
   renderTrendFilter(BRANDS);
   const active=activeTrendBrands.size>0?[...activeTrendBrands]:BRANDS.slice(0,5);
   const labels=months.map(k=>allData[k].label);
@@ -449,7 +459,7 @@ function renderTrend(){
     t+=`</tr><tr>`;
     t+=months.map(()=>`<th class="col-sep" style="text-align:right">2025年</th><th style="text-align:right;color:var(--green)">2026年</th><th>前年比</th><th>達成率</th>`).join('');
     t+=`</tr></thead><tbody>`;
-    [...BRANDS,'総合計'].forEach(b=>{
+    [...getBrands(),'総合計'].forEach(b=>{
       const rowData=months.map(k=>allData[k][dataKey].find(r=>r.name===b));
       if(!rowData.some(r=>r&&r.y2026>0))return;
       const isTot=b.includes('総');
