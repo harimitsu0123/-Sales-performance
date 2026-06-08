@@ -248,8 +248,11 @@ const achC=a=>a==null?'var(--text3)':a>=100?'var(--green)':a>=80?'var(--amber)':
 const yoyC=y=>y==null?'var(--text3)':y>=100?'var(--green)':'var(--red)';
 const gapC=g=>g==null?'var(--text3)':g>=0?'var(--green)':'var(--red)';
 const gapS=g=>g==null?'—':(g>=0?'+':'')+fmt(g);
-// datalabelsプラグインをグローバル登録
-if(window.ChartDataLabels)Chart.register(ChartDataLabels);
+// datalabelsプラグインをグローバル登録（デフォルトはオフ）
+if(window.ChartDataLabels){
+  Chart.register(ChartDataLabels);
+  Chart.defaults.plugins.datalabels.display=false;
+}
 
 // 数値を短縮表示（例: 1,234,567 → 123万）
 const fmtShort=n=>{
