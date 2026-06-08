@@ -190,7 +190,7 @@ function parseSection(rows,start,end){
   const res=[];
   for(let i=start;i<end;i++){
     const r=rows[i];
-    if(!r||r.every(c=>c==null))continue;
+    if(!r||r.every(c=>c==null))break;
     const name=normBrand(String(r[1]||r[0]||'').trim());
     if(!name)continue;
     const y5=toN(r[2]),y6=toN(r[3]),yoy=toN(r[4]),tgt=toN(r[5]),ach=toN(r[6]),gap=toN(r[7]);
@@ -380,6 +380,8 @@ function tableRows(data){
 
 function drawOvChart(id,data){
   const el=document.getElementById(id);if(!el)return;
+  // 重複除去
+  const seen=new Set();data=data.filter(r=>{if(seen.has(r.name))return false;seen.add(r.name);return true;});
   mc(id,{type:'bar',data:{labels:data.map(d=>d.name),datasets:[
     {label:'2025年',data:data.map(d=>d.y2025),backgroundColor:'#b0cff5',borderRadius:3},
     {label:'2026年',data:data.map(d=>d.y2026),backgroundColor:'#52c89a',borderRadius:3},
