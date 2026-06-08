@@ -93,7 +93,7 @@ tbody tr:hover:not(:last-child){background:#faf9f7}
 <nav class="sidebar">
   <div class="sidebar-logo">📊 業績ダッシュボード</div>
   <button class="nav-btn active" onclick="showPage('overview',this)">📋 月次サマリー</button>
-  <button class="nav-btn" onclick="showPage('allmonths',this)">📅 全月一覧</button>
+  <button class="nav-btn" onclick="showPage('allmonths',this)">🤖 自動分析</button>
   <button class="nav-btn" onclick="showPage('trend',this)">📈 月次推移</button>
   <button class="nav-btn" onclick="showPage('brand',this)">🏷️ ブランド分析</button>
   <button class="nav-btn" onclick="showPage('upload',this)">📁 データ管理</button>
@@ -108,7 +108,6 @@ tbody tr:hover:not(:last-child){background:#faf9f7}
     <span id="overview-month-label" style="font-size:13px;color:var(--text3)"></span>
   </div>
   <div class="month-bar" id="overview-month-bar"><span class="month-label">表示月：</span></div>
-  <div id="auto-analysis" style="margin-bottom:1.5rem"></div>
   <div id="overview-content"><div class="empty-state"><div class="emoji">📊</div><p style="color:var(--text3)">データ読み込み中...</p></div></div>
 </div>
 
@@ -125,9 +124,10 @@ tbody tr:hover:not(:last-child){background:#faf9f7}
   <div id="brand-content"><div class="empty-state"><div class="emoji">🏷️</div><p style="color:var(--text3)">データ読み込み中...</p></div></div>
 </div>
 
-<!-- 全月一覧 -->
+<!-- 自動分析 -->
 <div id="page-allmonths" class="page">
-  <div class="topbar"><div class="page-title">全月一覧</div></div>
+  <div class="topbar"><div class="page-title">自動分析</div></div>
+  <div id="auto-analysis" style="margin-bottom:1.5rem"></div>
   <div id="allmonths-content"><div class="empty-state"><div class="emoji">📅</div><p style="color:var(--text3)">データなし</p></div></div>
 </div>
 
