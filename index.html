@@ -259,6 +259,20 @@ function handleFiles(files){
   });
 }
 
+function addSonotaRow(section){
+  const tot=section.find(r=>r.name.includes('総'));
+  if(!tot)return;
+  const brands=section.filter(r=>!r.name.includes('総'));
+  const sum25=brands.reduce((s,r)=>s+(r.y2025||0),0);
+  const sum26=brands.reduce((s,r)=>s+(r.y2026||0),0);
+  const diff25=Math.round((tot.y2025||0)-sum25);
+  const diff26=Math.round((tot.y2026||0)-sum26);
+  if(Math.abs(diff26)>100){
+    const yoy=diff25>0&&diff26!=null?diff26/diff25*100:null;
+    section.splice(section.indexOf(tot),0,{name:'その他',y2025:diff25,y2026:diff26,target:null,yoy,ach:null,gap:null});
+  }
+}
+
 function parseAllExcel(buf){
   const wb=XLSX.read(buf,{type:'array'});
   const ws=wb.Sheets[wb.SheetNames[0]];
@@ -288,6 +302,8 @@ function parseAllExcel(buf){
     const tangetsu=tanStart>=0?parseSection(rows,tanStart+2,tanEnd):[];
     const ruikei=ruiStart>=0?parseSection(rows,ruiStart+2,blockEnd):[];
     if(tangetsu.length>0||ruikei.length>0){
+      addSonotaRow(tangetsu);
+      addSonotaRow(ruikei);
       result[monthKey]={monthKey,label:labelToDisp(label),tangetsu,ruikei};
     }
   }
