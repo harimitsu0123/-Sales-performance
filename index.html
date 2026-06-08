@@ -93,7 +93,6 @@ tbody tr:hover:not(:last-child){background:#faf9f7}
 <nav class="sidebar">
   <div class="sidebar-logo">📊 業績ダッシュボード</div>
   <button class="nav-btn active" onclick="showPage('overview',this)">📋 月次サマリー</button>
-  <button class="nav-btn" onclick="showPage('analysis',this)">🤖 自動分析</button>
   <button class="nav-btn" onclick="showPage('allmonths',this)">📅 全月一覧</button>
   <button class="nav-btn" onclick="showPage('trend',this)">📈 月次推移</button>
   <button class="nav-btn" onclick="showPage('brand',this)">🏷️ ブランド分析</button>
@@ -123,12 +122,6 @@ tbody tr:hover:not(:last-child){background:#faf9f7}
 <div id="page-brand" class="page">
   <div class="topbar"><div class="page-title">ブランド分析</div></div>
   <div id="brand-content"><div class="empty-state"><div class="emoji">🏷️</div><p style="color:var(--text3)">データ読み込み中...</p></div></div>
-</div>
-
-<!-- 自動分析 -->
-<div id="page-analysis" class="page">
-  <div class="topbar"><div class="page-title">自動分析</div></div>
-  <div id="auto-analysis"></div>
 </div>
 
 <!-- 全月一覧 -->
@@ -488,18 +481,56 @@ function renderAllMonths(){
       </div>`;
   };
 
-  el.innerHTML=[...months].reverse().map(k=>{
+  const makeInsights=(d)=>{
+    const tips=[];
+    const tan=d.tangetsu.find(r=>r.name.includes('総'));
+    const rui=d.ruikei.find(r=>r.name.includes('総'));
+    if(tan?.yoy!=null)tips.push({t:tan.yoy>=100?'up':'down',
+      s:`${tan.yoy>=100?'📈':'📉'} 単月前年比 <strong>${tan.yoy.toFixed(1)}%</strong>（${fmt(tan.y2025)}→${fmt(tan.y2026)}円）`});
+    if(rui?.yoy!=null)tips.push({t:rui.yoy>=100?'up':'down',
+      s:`${rui.yoy>=100?'📈':'📉'} 累計前年比 <strong>${rui.yoy.toFixed(1)}%</strong>（${fmt(rui.y2025)}→${fmt(rui.y2026)}円）`});
+    const brands=d.tangetsu.filter(r=>!r.name.includes('総')&&r.yoy!=null).sort((a,b)=>b.yoy-a.yoy);
+    const over=brands.filter(r=>r.yoy>=120);
+    const under=brands.filter(r=>r.yoy<80);
+    if(over.length)tips.push({t:'up',s:`🔺 前年比120%超：<strong>${over.map(r=>r.name+'('+r.yoy.toFixed(0)+'%)').join('・')}</strong>`});
+    if(under.length)tips.push({t:'down',s:`🔻 前年比80%未満：<strong>${under.map(r=>r.name+'('+r.yoy.toFixed(0)+'%)').join('・')}</strong>`});
+    const overT=d.tangetsu.filter(r=>!r.name.includes('総')&&r.ach>=100).map(r=>r.name);
+    const underT=d.tangetsu.filter(r=>!r.name.includes('総')&&r.ach!=null&&r.ach<80).map(r=>r.name);
+    if(overT.length)tips.push({t:'good',s:`✅ 目標達成：<strong>${overT.join('・')}</strong>`});
+    if(underT.length)tips.push({t:'warn',s:`⚠️ 達成率80%未満：<strong>${underT.join('・')}</strong>`});
+    const clr={up:'#e8f5e9',down:'#fdecea',good:'#e8f5e9',warn:'#fff8e1'};
+    const bdr={up:'#52c89a',down:'#e04444',good:'#52c89a',warn:'#f5c542'};
+    return tips.map(i=>`<div style="padding:7px 12px;border-radius:6px;background:${clr[i.t]};border-left:3px solid ${bdr[i.t]};font-size:12px;line-height:1.6">${i.s}</div>`).join('');
+  };
+
+  el.innerHTML=[...months].reverse().map((k,idx)=>{
     const d=allData[k];
-    return`<div style="background:var(--surface);border:0.5px solid var(--border2);border-radius:var(--radius);padding:18px 20px;margin-bottom:1.5rem">
-      <div style="font-size:17px;font-weight:800;color:var(--text);margin-bottom:14px;padding-bottom:10px;border-bottom:2px solid var(--border2)">
-        ${d.label}
+    const isOpen=idx===0;
+    return`<div style="background:var(--surface);border:0.5px solid var(--border2);border-radius:var(--radius);margin-bottom:1rem;overflow:hidden">
+      <div onclick="toggleMonth('m${k}')" style="display:flex;justify-content:space-between;align-items:center;padding:14px 20px;cursor:pointer;user-select:none;font-size:17px;font-weight:800;border-bottom:${isOpen?'2px solid var(--border2)':'none'}">
+        <span>${d.label}</span>
+        <span id="arr_${k}" style="font-size:14px;transition:transform .2s;display:inline-block;transform:${isOpen?'rotate(0)':'rotate(-90deg)'}"">▼</span>
       </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
-        ${makeSection(d.tangetsu,'単月')}
-        ${makeSection(d.ruikei,'累計')}
+      <div id="m${k}" style="display:${isOpen?'block':'none'};padding:18px 20px">
+        <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:14px">${makeInsights(d)}</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+          ${makeSection(d.tangetsu,'単月')}
+          ${makeSection(d.ruikei,'累計')}
+        </div>
       </div>
     </div>`;
   }).join('');
+}
+
+function toggleMonth(id){
+  const el=document.getElementById(id);
+  const key=id.replace('m','');
+  const arr=document.getElementById('arr_'+key);
+  if(!el)return;
+  const open=el.style.display==='none';
+  el.style.display=open?'block':'none';
+  el.previousElementSibling.style.borderBottom=open?'2px solid var(--border2)':'none';
+  if(arr)arr.style.transform=open?'rotate(0)':'rotate(-90deg)';
 }
 
 function renderAnalysis(){
