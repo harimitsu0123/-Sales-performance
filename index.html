@@ -311,7 +311,7 @@ fi.addEventListener('change',()=>handleFiles(fi.files));
 function handleFiles(files){
   Array.from(files).forEach(async f=>{
     const r=new FileReader();
-    r.onload=e=>{
+    r.onload=async e=>{
       try{
         const months=parseAllExcel(new Uint8Array(e.target.result));
         const keys=Object.keys(months);
