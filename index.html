@@ -95,7 +95,7 @@ tbody tr:hover:not(:last-child){background:#faf9f7}
   <button class="nav-btn" onclick="showPage('trend',this)">📈 月次推移</button>
   <button class="nav-btn" onclick="showPage('brand',this)">🏷️ ブランド分析</button>
   <button class="nav-btn" onclick="showPage('upload',this)">📁 データ管理</button>
-  <div class="sidebar-footer">社外秘 — 社内関係者のみ</div>
+  <div class="sidebar-footer" id="data-status">データなし</div>
 </nav>
 <div class="main">
 
@@ -144,7 +144,21 @@ tbody tr:hover:not(:last-child){background:#faf9f7}
 
 <script>
 const STORAGE_KEY='gyoseki_allData_v1';
-function saveData(){try{localStorage.setItem(STORAGE_KEY,JSON.stringify(allData));}catch(e){}}
+function saveData(){
+  try{localStorage.setItem(STORAGE_KEY,JSON.stringify(allData));}catch(e){}
+  updateDataStatus();
+}
+function updateDataStatus(){
+  const el=document.getElementById('data-status');
+  if(!el)return;
+  const n=Object.keys(allData).length;
+  if(n===0){el.textContent='データなし';el.style.color='';}
+  else{
+    const latest=Object.keys(allData).sort().pop();
+    el.innerHTML=`✅ ${n}ヶ月分保存済み<br><span style="font-size:10px">最新: ${allData[latest].label}</span>`;
+    el.style.color='var(--green)';
+  }
+}
 function loadData(){try{const s=localStorage.getItem(STORAGE_KEY);if(s)allData=JSON.parse(s);}catch(e){}}
 let allData={};
 loadData();
@@ -567,6 +581,7 @@ function switchView(id,btn){
 
 // ページ起動時に保存データを表示
 if(Object.keys(allData).length>0)renderAll();
+updateDataStatus();
 </script>
 </body>
 </html>
