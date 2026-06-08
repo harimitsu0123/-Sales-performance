@@ -93,6 +93,7 @@ tbody tr:hover:not(:last-child){background:#faf9f7}
 <nav class="sidebar">
   <div class="sidebar-logo">📊 業績ダッシュボード</div>
   <button class="nav-btn active" onclick="showPage('overview',this)">📋 月次サマリー</button>
+  <button class="nav-btn" onclick="showPage('allmonths',this)">📅 全月一覧</button>
   <button class="nav-btn" onclick="showPage('trend',this)">📈 月次推移</button>
   <button class="nav-btn" onclick="showPage('brand',this)">🏷️ ブランド分析</button>
   <button class="nav-btn" onclick="showPage('upload',this)">📁 データ管理</button>
@@ -122,6 +123,12 @@ tbody tr:hover:not(:last-child){background:#faf9f7}
 <div id="page-brand" class="page">
   <div class="topbar"><div class="page-title">ブランド分析</div></div>
   <div id="brand-content"><div class="empty-state"><div class="emoji">🏷️</div><p style="color:var(--text3)">データ読み込み中...</p></div></div>
+</div>
+
+<!-- 全月一覧 -->
+<div id="page-allmonths" class="page">
+  <div class="topbar"><div class="page-title">全月一覧</div></div>
+  <div id="allmonths-content"><div class="empty-state"><div class="emoji">📅</div><p style="color:var(--text3)">データなし</p></div></div>
 </div>
 
 <!-- データ管理 -->
@@ -422,7 +429,70 @@ function addLog(name,key,ok,err){
 }
 
 function renderAll(){
-  renderMonthBar();renderDataList();renderAnalysis();renderOverview();renderTrend();renderBrand();
+  renderMonthBar();renderDataList();renderAnalysis();renderOverview();renderAllMonths();renderTrend();renderBrand();
+}
+
+function renderAllMonths(){
+  const el=document.getElementById('allmonths-content');
+  if(!el)return;
+  const months=sortedMonths();
+  if(!months.length){el.innerHTML='<div class="empty-state"><div class="emoji">📅</div><p style="color:var(--text3)">データなし</p></div>';return;}
+
+  const makeSection=(data,label)=>{
+    const tot=data.find(r=>r.name.includes('総'))||{};
+    const brands=data.filter(r=>!r.name.includes('総'));
+    const achC=tot.ach==null?'var(--text3)':tot.ach>=100?'var(--green)':tot.ach>=80?'var(--amber)':'var(--red)';
+    const yoyC=tot.yoy==null?'var(--text3)':tot.yoy>=100?'var(--green)':'var(--red)';
+    return`
+      <div style="margin-bottom:8px">
+        <div style="font-size:11px;font-weight:700;color:var(--text3);letter-spacing:1px;margin-bottom:6px">${label}</div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px">
+          <div class="metric-card"><div class="metric-label">2026年売上</div><div class="metric-value" style="font-size:16px">${fmt(tot.y2026)}<small>円</small></div></div>
+          <div class="metric-card"><div class="metric-label">前年比</div><div class="metric-value" style="font-size:16px;color:${yoyC}">${tot.yoy!=null?tot.yoy.toFixed(1)+'%':'—'}</div></div>
+          <div class="metric-card"><div class="metric-label">達成率</div><div class="metric-value" style="font-size:16px;color:${achC}">${tot.ach!=null?tot.ach.toFixed(1)+'%':'—'}</div></div>
+        </div>
+        <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">
+          <thead><tr style="background:var(--surface2)">
+            <th style="text-align:left;padding:6px 10px;color:var(--text3);font-weight:600">区分</th>
+            <th style="text-align:right;padding:6px 10px;color:var(--text3);font-weight:600">2025年</th>
+            <th style="text-align:right;padding:6px 10px;font-weight:700">2026年</th>
+            <th style="text-align:right;padding:6px 10px;color:var(--text3);font-weight:600">前年比</th>
+            <th style="text-align:right;padding:6px 10px;color:var(--text3);font-weight:600">達成率</th>
+          </tr></thead>
+          <tbody>${brands.map(r=>{
+            const yC=r.yoy==null?'':r.yoy>=100?'color:var(--green)':'color:var(--red)';
+            const aC=r.ach==null?'':r.ach>=100?'color:var(--green)':r.ach>=80?'color:var(--amber)':'color:var(--red)';
+            return`<tr style="border-bottom:0.5px solid var(--border)">
+              <td style="padding:6px 10px;font-weight:500">${r.name}</td>
+              <td style="text-align:right;padding:6px 10px;color:var(--text3)">${fmt(r.y2025)}</td>
+              <td style="text-align:right;padding:6px 10px;font-weight:700">${fmt(r.y2026)}</td>
+              <td style="text-align:right;padding:6px 10px;${yC}">${r.yoy!=null?r.yoy.toFixed(1)+'%':'—'}</td>
+              <td style="text-align:right;padding:6px 10px;${aC}">${r.ach!=null?r.ach.toFixed(1)+'%':'—'}</td>
+            </tr>`;
+          }).join('')}
+          <tr style="background:var(--surface2);font-weight:700">
+            <td style="padding:6px 10px">総合計</td>
+            <td style="text-align:right;padding:6px 10px;color:var(--text3)">${fmt(tot.y2025)}</td>
+            <td style="text-align:right;padding:6px 10px">${fmt(tot.y2026)}</td>
+            <td style="text-align:right;padding:6px 10px;color:${yoyC}">${tot.yoy!=null?tot.yoy.toFixed(1)+'%':'—'}</td>
+            <td style="text-align:right;padding:6px 10px;color:${achC}">${tot.ach!=null?tot.ach.toFixed(1)+'%':'—'}</td>
+          </tr></tbody>
+        </table></div>
+      </div>`;
+  };
+
+  el.innerHTML=months.map(k=>{
+    const d=allData[k];
+    return`<div style="background:var(--surface);border:0.5px solid var(--border2);border-radius:var(--radius);padding:18px 20px;margin-bottom:1.5rem">
+      <div style="font-size:17px;font-weight:800;color:var(--text);margin-bottom:14px;padding-bottom:10px;border-bottom:2px solid var(--border2)">
+        ${d.label}
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+        ${makeSection(d.tangetsu,'単月')}
+        ${makeSection(d.ruikei,'累計')}
+      </div>
+    </div>`;
+  }).join('');
 }
 
 function renderAnalysis(){
