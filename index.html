@@ -107,6 +107,7 @@ tbody tr:hover:not(:last-child){background:#faf9f7}
     <span id="overview-month-label" style="font-size:13px;color:var(--text3)"></span>
   </div>
   <div class="month-bar" id="overview-month-bar"><span class="month-label">表示月：</span></div>
+  <div id="auto-analysis" style="margin-bottom:1.5rem"></div>
   <div id="overview-content"><div class="empty-state"><div class="emoji">📊</div><p style="color:var(--text3)">データ読み込み中...</p></div></div>
 </div>
 
@@ -421,7 +422,77 @@ function addLog(name,key,ok,err){
 }
 
 function renderAll(){
-  renderMonthBar();renderDataList();renderOverview();renderTrend();renderBrand();
+  renderMonthBar();renderDataList();renderAnalysis();renderOverview();renderTrend();renderBrand();
+}
+
+function renderAnalysis(){
+  const el=document.getElementById('auto-analysis');
+  if(!el)return;
+  const months=sortedMonths();
+  if(!months.length){el.innerHTML='';return;}
+
+  const cur=allData[months[months.length-1]];
+  const prev=months.length>1?allData[months[months.length-2]]:null;
+  const insights=[];
+
+  // 総合計の前月比
+  const curTot=cur.tangetsu.find(r=>r.name.includes('総'));
+  const prevTot=prev?prev.tangetsu.find(r=>r.name.includes('総')):null;
+  if(curTot&&prevTot&&prevTot.y2026>0){
+    const chg=((curTot.y2026-prevTot.y2026)/prevTot.y2026*100);
+    const icon=chg>=0?'📈':'📉';
+    const dir=chg>=0?'増加':'減少';
+    insights.push({type:chg>=0?'up':'down',text:`${icon} 総合計の単月売上は前月比 <strong>${Math.abs(chg).toFixed(1)}%${dir}</strong>（${fmt(prevTot.y2026)}円 → ${fmt(curTot.y2026)}円）`});
+  }
+
+  // 各ブランドの前月比（大きな変化）
+  if(prev){
+    const changes=[];
+    cur.tangetsu.filter(r=>!r.name.includes('総')).forEach(r=>{
+      const p=prev.tangetsu.find(p=>p.name===r.name);
+      if(p&&p.y2026>0&&r.y2026>0){
+        changes.push({name:r.name,chg:(r.y2026-p.y2026)/p.y2026*100,cur:r.y2026,prev:p.y2026});
+      }
+    });
+    changes.sort((a,b)=>Math.abs(b.chg)-Math.abs(a.chg));
+    changes.slice(0,3).forEach(c=>{
+      const icon=c.chg>=0?'🔺':'🔻';
+      const dir=c.chg>=0?'増':'減';
+      insights.push({type:c.chg>=0?'up':'down',text:`${icon} <strong>${c.name}</strong> が前月比 ${Math.abs(c.chg).toFixed(1)}%${dir}（${fmt(c.prev)}円 → ${fmt(c.cur)}円）`});
+    });
+  }
+
+  // 目標達成・未達
+  const overTarget=cur.tangetsu.filter(r=>!r.name.includes('総')&&r.ach!=null&&r.ach>=100).map(r=>r.name);
+  const underTarget=cur.tangetsu.filter(r=>!r.name.includes('総')&&r.ach!=null&&r.ach<80).map(r=>r.name);
+  if(overTarget.length)insights.push({type:'good',text:`✅ 目標達成：<strong>${overTarget.join('・')}</strong>`});
+  if(underTarget.length)insights.push({type:'warn',text:`⚠️ 目標達成率80%未満：<strong>${underTarget.join('・')}</strong>`});
+
+  // 前年比トップ
+  const yoyTop=cur.tangetsu.filter(r=>!r.name.includes('総')&&r.yoy!=null).sort((a,b)=>b.yoy-a.yoy);
+  if(yoyTop.length){
+    const t=yoyTop[0];
+    insights.push({type:'info',text:`🏆 前年比トップ：<strong>${t.name}</strong>（${t.yoy.toFixed(1)}%）`});
+  }
+  if(yoyTop.length>1){
+    const b=yoyTop[yoyTop.length-1];
+    if(b.yoy<100)insights.push({type:'warn',text:`📌 前年比最低：<strong>${b.name}</strong>（${b.yoy.toFixed(1)}%）`});
+  }
+
+  const colors={up:'#e8f5e9',down:'#fdecea',good:'#e8f5e9',warn:'#fff8e1',info:'#e3f2fd'};
+  const borders={up:'#52c89a',down:'#e04444',good:'#52c89a',warn:'#f5c542',info:'#3278cc'};
+  el.innerHTML=`
+    <div style="background:var(--surface);border:0.5px solid var(--border2);border-radius:var(--radius);padding:16px 18px">
+      <div style="font-size:13px;font-weight:700;margin-bottom:12px;display:flex;align-items:center;gap:6px">
+        🤖 自動分析 <span style="font-size:11px;color:var(--text3);font-weight:400">— ${cur.label}の状況</span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        ${insights.map(i=>`
+          <div style="padding:8px 12px;border-radius:6px;background:${colors[i.type]};border-left:3px solid ${borders[i.type]};font-size:13px;line-height:1.6">
+            ${i.text}
+          </div>`).join('')}
+      </div>
+    </div>`;
 }
 
 function sortedMonths(){return Object.keys(allData).sort();}
