@@ -526,7 +526,7 @@ function tableRows(data){
   return data.map(r=>{
     const fp=r.ach?Math.min(r.ach,115):0;
     const fc=r.ach==null?'#ccc':r.ach>=100?'#1a9e72':r.ach>=80?'#b87215':'#e04444';
-    return`<tr><td>${r.name}</td><td>${fmt(r.y2025)}</td><td>${fmt(r.y2026)}</td>
+    return`<tr><td>${r.name}</td><td>${fmt(r.y2025)}</td><td><strong>${fmt(r.y2026)}</strong></td>
     <td style="color:${yoyC(r.yoy)}">${r.yoy!=null?r.yoy.toFixed(1)+'%':'—'}</td>
     <td>${fmt(r.target)}</td>
     <td><span class="progress-bar"><span class="progress-fill" style="width:${fp}%;background:${fc}"></span></span><span style="color:${achC(r.ach)}">${r.ach!=null?r.ach.toFixed(1)+'%':'—'}</span></td>
