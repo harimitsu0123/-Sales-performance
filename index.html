@@ -133,7 +133,20 @@ tbody tr:hover:not(:last-child){background:#faf9f7}
   </div>
   <div id="upload-log" style="margin-top:1rem"></div>
   <div id="data-list" style="margin-top:1.5rem"></div>
-  <div style="margin-top:1.5rem">
+  <!-- GitHub設定 -->
+  <div style="margin-top:1.5rem;background:var(--surface);border:0.5px solid var(--border2);border-radius:var(--radius);padding:16px 18px">
+    <div style="font-size:13px;font-weight:600;margin-bottom:4px">☁️ クラウド同期設定</div>
+    <div style="font-size:12px;color:var(--text3);margin-bottom:12px">設定するとExcelアップロード時に自動でクラウドに保存→全員が同じデータを見られます</div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <input id="token-input" type="password" placeholder="GitHubトークンを入力（ghp_...）"
+        style="flex:1;min-width:200px;padding:8px 12px;border:0.5px solid var(--border2);border-radius:6px;font-size:13px;background:var(--surface)"
+        value="">
+      <button onclick="saveToken()" style="padding:8px 16px;border-radius:6px;background:var(--blue);color:#fff;border:none;cursor:pointer;font-size:13px;font-weight:600">保存</button>
+      <button onclick="clearToken()" style="padding:8px 12px;border-radius:6px;border:0.5px solid var(--border2);background:transparent;cursor:pointer;font-size:13px">削除</button>
+    </div>
+    <div id="token-status" style="font-size:11px;margin-top:8px"></div>
+  </div>
+  <div style="margin-top:1rem">
     <button onclick="clearAllData()" style="padding:8px 18px;border-radius:6px;border:1px solid var(--red);color:var(--red);background:transparent;cursor:pointer;font-size:13px;">🗑 全データをクリア</button>
     <span style="font-size:11px;color:var(--text3);margin-left:10px">ブラウザに保存されたデータを削除します</span>
   </div>
@@ -148,22 +161,69 @@ function saveData(){
   try{localStorage.setItem(STORAGE_KEY,JSON.stringify(allData));}catch(e){}
   updateDataStatus();
 }
-function updateDataStatus(){
+function updateDataStatus(state){
   const el=document.getElementById('data-status');
   if(!el)return;
   const n=Object.keys(allData).length;
-  if(n===0){el.textContent='データなし';el.style.color='';}
+  if(n===0){el.innerHTML='データなし';el.style.color='';}
   else{
     const latest=Object.keys(allData).sort().pop();
-    el.innerHTML=`✅ ${n}ヶ月分保存済み<br><span style="font-size:10px">最新: ${allData[latest].label}</span>`;
+    const syncIcon=getToken()?(state==='pushed'?'☁️ 同期済み':'☁️ 同期中...'):'💾 ローカルのみ';
+    el.innerHTML=`✅ ${n}ヶ月分<br><span style="font-size:10px">最新: ${allData[latest].label}</span><br><span style="font-size:10px">${syncIcon}</span>`;
     el.style.color='var(--green)';
   }
 }
+const REPO='harimitsu0123/-Sales-performance';
+const DATA_FILE='data.json';
+const RAW_URL=`https://raw.githubusercontent.com/${REPO}/main/${DATA_FILE}`;
+const API_URL=`https://api.github.com/repos/${REPO}/contents/${DATA_FILE}`;
+const TOKEN_KEY='gh_token_v1';
+
+function getToken(){return localStorage.getItem(TOKEN_KEY)||'';}
+function setToken(t){if(t)localStorage.setItem(TOKEN_KEY,t);else localStorage.removeItem(TOKEN_KEY);}
+
+async function saveData(){
+  try{localStorage.setItem(STORAGE_KEY,JSON.stringify(allData));}catch(e){}
+  updateDataStatus();
+  const token=getToken();
+  if(!token)return;
+  try{
+    const content=btoa(unescape(encodeURIComponent(JSON.stringify(allData))));
+    // 既存ファイルのSHAを取得
+    let sha=null;
+    try{const r=await fetch(API_URL,{headers:{'Authorization':'token '+token}});if(r.ok){const d=await r.json();sha=d.sha;}}catch(e){}
+    const body={message:'Update data',content};
+    if(sha)body.sha=sha;
+    await fetch(API_URL,{method:'PUT',headers:{'Authorization':'token '+token,'Content-Type':'application/json'},body:JSON.stringify(body)});
+    updateDataStatus('pushed');
+  }catch(e){console.error('GitHub push failed',e);}
+}
+
+async function loadFromGitHub(){
+  try{
+    const r=await fetch(RAW_URL+'?t='+Date.now());
+    if(!r.ok)return false;
+    const d=await r.json();
+    if(d&&typeof d==='object'&&Object.keys(d).length>0){
+      allData=d;selectedMonth=Object.keys(d).sort().pop()||null;
+      return true;
+    }
+  }catch(e){}
+  return false;
+}
+
 function loadData(){try{const s=localStorage.getItem(STORAGE_KEY);if(s)allData=JSON.parse(s);}catch(e){}}
 let allData={};
 loadData();
 let selectedMonth=Object.keys(allData).sort().pop()||null;
 let activeTrendBrands=new Set();
+
+// GitHubから最新データを取得してページ起動
+(async()=>{
+  const ok=await loadFromGitHub();
+  if(ok){saveData();renderAll();}
+  updateDataStatus();
+})();
 const COLORS=['#3278cc','#1a9e72','#e8963a','#9b5de5','#e04444','#0bb4b4','#b87215','#e84393','#00b4d8'];
 // ブランド一覧をデータから動的に取得（総合計を除く）
 function getBrands(){
@@ -249,7 +309,7 @@ dz.addEventListener('drop',e=>{e.preventDefault();dz.classList.remove('dragover'
 fi.addEventListener('change',()=>handleFiles(fi.files));
 
 function handleFiles(files){
-  Array.from(files).forEach(f=>{
+  Array.from(files).forEach(async f=>{
     const r=new FileReader();
     r.onload=e=>{
       try{
@@ -258,7 +318,7 @@ function handleFiles(files){
         if(keys.length>0){
           keys.forEach(k=>{allData[k]=months[k];});
           selectedMonth=keys[keys.length-1];
-          saveData();
+          await saveData();
           addLog(f.name,keys.length+'ヶ月分のデータを読み込みました',true);
           renderAll();
         } else {
@@ -374,7 +434,31 @@ function renderDataList(){
 }
 
 function delMonth(k){delete allData[k];if(selectedMonth===k)selectedMonth=sortedMonths()[0]||null;saveData();renderAll();}
-function clearAllData(){if(confirm('全データを削除しますか？')){allData={};selectedMonth=null;localStorage.removeItem(STORAGE_KEY);renderAll();}}
+function clearAllData(){if(confirm('全データを削除しますか？')){allData={};selectedMonth=null;localStorage.removeItem(STORAGE_KEY);renderAll();updateDataStatus();}}
+
+function saveToken(){
+  const t=document.getElementById('token-input').value.trim();
+  if(!t){alert('トークンを入力してください');return;}
+  setToken(t);
+  document.getElementById('token-input').value='';
+  updateTokenStatus();
+  updateDataStatus();
+  alert('トークンを保存しました！次回Excelアップロード時から自動でクラウドに保存されます。');
+}
+function clearToken(){
+  setToken('');
+  updateTokenStatus();
+  updateDataStatus();
+}
+function updateTokenStatus(){
+  const el=document.getElementById('token-status');
+  if(!el)return;
+  const t=getToken();
+  el.innerHTML=t
+    ?'✅ トークン設定済み — Excelアップロード時に自動クラウド保存されます'
+    :'⚠️ 未設定 — このブラウザのみにデータが保存されます';
+  el.style.color=t?'var(--green)':'var(--amber)';
+}
 
 // OVERVIEW
 function renderOverview(){
@@ -582,6 +666,7 @@ function switchView(id,btn){
 // ページ起動時に保存データを表示
 if(Object.keys(allData).length>0)renderAll();
 updateDataStatus();
+updateTokenStatus();
 </script>
 </body>
 </html>
