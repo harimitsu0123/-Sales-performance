@@ -494,10 +494,16 @@ function renderAllMonths(){
     const under=brands.filter(r=>r.yoy<80);
     if(over.length)tips.push({t:'up',s:`🔺 前年比120%超：<strong>${over.map(r=>r.name+'('+r.yoy.toFixed(0)+'%)').join('・')}</strong>`});
     if(under.length)tips.push({t:'down',s:`🔻 前年比80%未満：<strong>${under.map(r=>r.name+'('+r.yoy.toFixed(0)+'%)').join('・')}</strong>`});
-    const overT=d.tangetsu.filter(r=>!r.name.includes('総')&&r.ach>=100).map(r=>r.name);
-    const underT=d.tangetsu.filter(r=>!r.name.includes('総')&&r.ach!=null&&r.ach<80).map(r=>r.name);
-    if(overT.length)tips.push({t:'good',s:`✅ 目標達成：<strong>${overT.join('・')}</strong>`});
-    if(underT.length)tips.push({t:'warn',s:`⚠️ 達成率80%未満：<strong>${underT.join('・')}</strong>`});
+    const fmtB=arr=>arr.map(r=>r.name+'('+r.ach.toFixed(0)+'%)').join('・');
+    const achAll=d.tangetsu.filter(r=>!r.name.includes('総'));
+    const overT=achAll.filter(r=>r.ach!=null&&r.ach>=100);
+    const midT=achAll.filter(r=>r.ach!=null&&r.ach>=80&&r.ach<100);
+    const underT=achAll.filter(r=>r.ach!=null&&r.ach<80);
+    const noT=achAll.filter(r=>r.ach==null).map(r=>r.name);
+    if(overT.length)tips.push({t:'good',s:`✅ 目標達成：<strong>${fmtB(overT)}</strong>`});
+    if(midT.length)tips.push({t:'warn',s:`🟡 80〜99%：<strong>${fmtB(midT)}</strong>`});
+    if(underT.length)tips.push({t:'down',s:`⚠️ 80%未満：<strong>${fmtB(underT)}</strong>`});
+    if(noT.length)tips.push({t:'info',s:`➖ 目標設定なし：<strong>${noT.join('・')}</strong>`});
     const clr={up:'#e8f5e9',down:'#fdecea',good:'#e8f5e9',warn:'#fff8e1'};
     const bdr={up:'#52c89a',down:'#e04444',good:'#52c89a',warn:'#f5c542'};
     return tips.map(i=>`<div style="padding:7px 12px;border-radius:6px;background:${clr[i.t]};border-left:3px solid ${bdr[i.t]};font-size:12px;line-height:1.6">${i.s}</div>`).join('');
@@ -573,11 +579,17 @@ function renderAnalysis(){
   if(sorted.length>=2&&sorted[sorted.length-1].yoy<100)insights.push({type:'warn',
     text:`📌 前年比最低：<strong>${sorted[sorted.length-1].name}</strong>（${sorted[sorted.length-1].yoy.toFixed(1)}%）${fmt(sorted[sorted.length-1].y2025)}円 → ${fmt(sorted[sorted.length-1].y2026)}円`});
 
-  // 目標達成・未達
-  const overTarget=cur.tangetsu.filter(r=>!r.name.includes('総')&&r.ach!=null&&r.ach>=100).map(r=>r.name);
-  const underTarget=cur.tangetsu.filter(r=>!r.name.includes('総')&&r.ach!=null&&r.ach<80).map(r=>r.name);
-  if(overTarget.length)insights.push({type:'good',text:`✅ 目標達成：<strong>${overTarget.join('・')}</strong>`});
-  if(underTarget.length)insights.push({type:'warn',text:`⚠️ 達成率80%未満：<strong>${underTarget.join('・')}</strong>`});
+  // 目標達成・未達（全ブランド表示）
+  const fmtBA=arr=>arr.map(r=>r.name+'('+r.ach.toFixed(0)+'%)').join('・');
+  const achAll2=cur.tangetsu.filter(r=>!r.name.includes('総'));
+  const overTarget=achAll2.filter(r=>r.ach!=null&&r.ach>=100);
+  const midTarget=achAll2.filter(r=>r.ach!=null&&r.ach>=80&&r.ach<100);
+  const underTarget=achAll2.filter(r=>r.ach!=null&&r.ach<80);
+  const noTarget=achAll2.filter(r=>r.ach==null).map(r=>r.name);
+  if(overTarget.length)insights.push({type:'good',text:`✅ 目標達成：<strong>${fmtBA(overTarget)}</strong>`});
+  if(midTarget.length)insights.push({type:'warn',text:`🟡 80〜99%：<strong>${fmtBA(midTarget)}</strong>`});
+  if(underTarget.length)insights.push({type:'warn',text:`⚠️ 80%未満：<strong>${fmtBA(underTarget)}</strong>`});
+  if(noTarget.length)insights.push({type:'info',text:`➖ 目標設定なし：<strong>${noTarget.join('・')}</strong>`});
 
   const colors={up:'#e8f5e9',down:'#fdecea',good:'#e8f5e9',warn:'#fff8e1',info:'#e3f2fd'};
   const borders={up:'#52c89a',down:'#e04444',good:'#52c89a',warn:'#f5c542',info:'#3278cc'};
