@@ -495,14 +495,11 @@ function renderAllMonths(){
     if(over.length)tips.push({t:'up',s:`🔺 前年比120%超：<strong>${over.map(r=>r.name+'('+r.yoy.toFixed(0)+'%)').join('・')}</strong>`});
     if(under.length)tips.push({t:'down',s:`🔻 前年比80%未満：<strong>${under.map(r=>r.name+'('+r.yoy.toFixed(0)+'%)').join('・')}</strong>`});
     const fmtB=arr=>arr.map(r=>r.name+'('+r.ach.toFixed(0)+'%)').join('・');
-    const achAll=d.tangetsu.filter(r=>!r.name.includes('総'));
-    const overT=achAll.filter(r=>r.ach!=null&&r.ach>=100);
-    const midT=achAll.filter(r=>r.ach!=null&&r.ach>=80&&r.ach<100);
-    const underT=achAll.filter(r=>r.ach!=null&&r.ach<80);
-    const noT=achAll.filter(r=>r.ach==null).map(r=>r.name);
-    if(overT.length)tips.push({t:'good',s:`✅ 目標達成：<strong>${fmtB(overT)}</strong>`});
-    if(midT.length)tips.push({t:'warn',s:`🟡 80〜99%：<strong>${fmtB(midT)}</strong>`});
-    if(underT.length)tips.push({t:'down',s:`⚠️ 80%未満：<strong>${fmtB(underT)}</strong>`});
+    const achAll=d.tangetsu.filter(r=>!r.name.includes('総')&&r.ach!=null);
+    const overT=achAll.filter(r=>r.ach>=100);
+    const underT=achAll.filter(r=>r.ach<80);
+    if(overT.length)tips.push({t:'good',s:`✅ 目標達成（100%以上）：<strong>${fmtB(overT)}</strong>`});
+    if(underT.length)tips.push({t:'down',s:`⚠️ 目標未達（80%未満）：<strong>${fmtB(underT)}</strong>`});
     const clr={up:'#e8f5e9',down:'#fdecea',good:'#e8f5e9',warn:'#fff8e1'};
     const bdr={up:'#52c89a',down:'#e04444',good:'#52c89a',warn:'#f5c542'};
     return tips.map(i=>`<div style="padding:7px 12px;border-radius:6px;background:${clr[i.t]};border-left:3px solid ${bdr[i.t]};font-size:12px;line-height:1.6">${i.s}</div>`).join('');
@@ -582,12 +579,11 @@ function renderAnalysis(){
   const fmtBA=arr=>arr.map(r=>r.name+'('+r.ach.toFixed(0)+'%)').join('・');
   const achAll2=cur.tangetsu.filter(r=>!r.name.includes('総'));
   const overTarget=achAll2.filter(r=>r.ach!=null&&r.ach>=100);
-  const midTarget=achAll2.filter(r=>r.ach!=null&&r.ach>=80&&r.ach<100);
-  const underTarget=achAll2.filter(r=>r.ach!=null&&r.ach<80);
-  const noTarget=achAll2.filter(r=>r.ach==null).map(r=>r.name);
-  if(overTarget.length)insights.push({type:'good',text:`✅ 目標達成：<strong>${fmtBA(overTarget)}</strong>`});
-  if(midTarget.length)insights.push({type:'warn',text:`🟡 80〜99%：<strong>${fmtBA(midTarget)}</strong>`});
-  if(underTarget.length)insights.push({type:'warn',text:`⚠️ 80%未満：<strong>${fmtBA(underTarget)}</strong>`});
+  const achAll2b=achAll2.filter(r=>r.ach!=null);
+  const overTarget=achAll2b.filter(r=>r.ach>=100);
+  const underTarget=achAll2b.filter(r=>r.ach<80);
+  if(overTarget.length)insights.push({type:'good',text:`✅ 目標達成（100%以上）：<strong>${fmtBA(overTarget)}</strong>`});
+  if(underTarget.length)insights.push({type:'warn',text:`⚠️ 目標未達（80%未満）：<strong>${fmtBA(underTarget)}</strong>`});
 
   const colors={up:'#e8f5e9',down:'#fdecea',good:'#e8f5e9',warn:'#fff8e1',info:'#e3f2fd'};
   const borders={up:'#52c89a',down:'#e04444',good:'#52c89a',warn:'#f5c542',info:'#3278cc'};
