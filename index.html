@@ -106,20 +106,20 @@ tbody tr:hover:not(:last-child){background:#faf9f7}
     <span id="overview-month-label" style="font-size:13px;color:var(--text3)"></span>
   </div>
   <div class="month-bar" id="overview-month-bar"><span class="month-label">表示月：</span></div>
-  <div id="overview-content"><div class="empty-state"><div class="emoji">📂</div><p>まずExcelファイルをアップロードしてください<br><small>「データ管理」からドラッグ＆ドロップで追加できます</small></p></div></div>
+  <div id="overview-content"><div class="empty-state"><div class="emoji">📊</div><p style="color:var(--text3)">データ読み込み中...</p></div></div>
 </div>
 
 <!-- 月次推移 -->
 <div id="page-trend" class="page">
   <div class="topbar"><div class="page-title">月次推移</div></div>
   <div id="trend-brand-filter" class="brand-filter"></div>
-  <div id="trend-content"><div class="empty-state"><div class="emoji">📈</div><p>データをアップロードすると推移グラフが表示されます</p></div></div>
+  <div id="trend-content"><div class="empty-state"><div class="emoji">📈</div><p style="color:var(--text3)">データ読み込み中...</p></div></div>
 </div>
 
 <!-- ブランド分析 -->
 <div id="page-brand" class="page">
   <div class="topbar"><div class="page-title">ブランド分析</div></div>
-  <div id="brand-content"><div class="empty-state"><div class="emoji">🏷️</div><p>データをアップロードするとブランド別分析が表示されます</p></div></div>
+  <div id="brand-content"><div class="empty-state"><div class="emoji">🏷️</div><p style="color:var(--text3)">データ読み込み中...</p></div></div>
 </div>
 
 <!-- データ管理 -->
@@ -465,7 +465,7 @@ function renderOverview(){
   const el=document.getElementById('overview-content');
   const lbl=document.getElementById('overview-month-label');
   if(!selectedMonth||!allData[selectedMonth]){
-    el.innerHTML='<div class="empty-state"><div class="emoji">📂</div><p>まずExcelファイルをアップロードしてください</p></div>';
+    el.innerHTML='<div class="empty-state"><div class="emoji">📊</div><p style="color:var(--text3)">データなし<br><small>「データ管理」からExcelをアップロードしてください</small></p></div>';
     lbl.textContent='';return;
   }
   const d=allData[selectedMonth];lbl.textContent=d.label;
@@ -534,7 +534,7 @@ function drawOvChart(id,data){
 function renderTrend(){
   const el=document.getElementById('trend-content');
   const months=sortedMonths();
-  if(!months.length){el.innerHTML='<div class="empty-state"><div class="emoji">📈</div><p>データをアップロードすると推移グラフが表示されます</p></div>';renderTrendFilter([]);return;}
+  if(!months.length){el.innerHTML='<div class="empty-state"><div class="emoji">📈</div><p style="color:var(--text3)">データなし</p></div>';renderTrendFilter([]);return;}
   const BRANDS=getBrands();
   renderTrendFilter(BRANDS);
   const active=activeTrendBrands.size>0?[...activeTrendBrands]:BRANDS.slice(0,5);
@@ -631,7 +631,7 @@ function toggleBrand(name,el){
 function renderBrand(){
   const el=document.getElementById('brand-content');
   const months=sortedMonths();
-  if(!months.length){el.innerHTML='<div class="empty-state"><div class="emoji">🏷️</div><p>データをアップロードするとブランド別分析が表示されます</p></div>';return;}
+  if(!months.length){el.innerHTML='<div class="empty-state"><div class="emoji">🏷️</div><p style="color:var(--text3)">データなし</p></div>';return;}
   el.innerHTML=`<div class="chart-card"><div class="chart-head"><span class="chart-title">ブランド別 累計売上構成（最新月・2026年）</span></div><div class="chart-wrap" style="height:260px"><canvas id="br-pie"></canvas></div></div>
   <div class="chart-card"><div class="chart-head"><span class="chart-title">ブランド別 累計達成率（最新月）</span></div><div class="chart-wrap" style="height:240px"><canvas id="br-ach"></canvas></div></div>`;
   const latest=allData[months[months.length-1]];
