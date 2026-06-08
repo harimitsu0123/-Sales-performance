@@ -302,8 +302,6 @@ function parseAllExcel(buf){
     const tangetsu=tanStart>=0?parseSection(rows,tanStart+2,tanEnd):[];
     const ruikei=ruiStart>=0?parseSection(rows,ruiStart+2,blockEnd):[];
     if(tangetsu.length>0||ruikei.length>0){
-      addSonotaRow(tangetsu);
-      addSonotaRow(ruikei);
       result[monthKey]={monthKey,label:labelToDisp(label),tangetsu,ruikei};
     }
   }
@@ -542,6 +540,9 @@ function renderBrand(){
   // ブランド名で重複除去（先頭の行を採用）
   const dedup=arr=>{const seen=new Set();return arr.filter(r=>{const k=r.name;if(seen.has(k))return false;seen.add(k);return true;});};
   const pd=dedup(latest.ruikei.filter(r=>!r.name.includes('総')&&r.y2026>0));
+  // その他を円グラフのみに追加（総合計との差分）
+  const tot=latest.ruikei.find(r=>r.name.includes('総'));
+  if(tot){const diff=Math.round((tot.y2026||0)-pd.reduce((s,d)=>s+d.y2026,0));if(diff>100)pd.push({name:'その他',y2026:diff});}
   const total=pd.reduce((s,d)=>s+d.y2026,0);
   mc('br-pie',{type:'doughnut',data:{labels:pd.map(d=>d.name),datasets:[{data:pd.map(d=>d.y2026),backgroundColor:COLORS,borderWidth:2,borderColor:'#fff'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{font:{size:12},boxWidth:12}},tooltip:{callbacks:{label:c=>' '+c.label+': '+c.raw.toLocaleString('ja-JP')+'円 ('+(total>0?(c.raw/total*100).toFixed(1):'0')+'%)'}}}}});
   const ad=dedup(latest.ruikei.filter(r=>!r.name.includes('総')&&r.ach!=null));
