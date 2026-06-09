@@ -385,11 +385,26 @@ function parseAllExcel(buf){
     const c2=String(r[2]||'').trim();
     if(!c1&&c2&&/^\d+\//.test(c2))blocks.push({row:i,label:c2});
   }
+  // 年なしラベルの年を前後の文脈から推定
+  let inferYear=2026,prevMonth=null;
+  const resolvedKeys=blocks.map((b,bi)=>{
+    const m4=b.label.match(/^(\d{4})\/(\d{1,2})\//);
+    if(m4){
+      inferYear=parseInt(m4[1]);prevMonth=parseInt(m4[2]);
+      return m4[1]+'-'+String(m4[2]).padStart(2,'0');
+    }
+    const m=b.label.match(/^(\d{1,2})\//);
+    const mo=m?parseInt(m[1]):bi+1;
+    if(prevMonth!==null&&mo<=prevMonth)inferYear++;
+    prevMonth=mo;
+    return inferYear+'-'+String(mo).padStart(2,'0');
+  });
+
   for(let bi=0;bi<blocks.length;bi++){
     const blockStart=blocks[bi].row;
     const blockEnd=bi+1<blocks.length?blocks[bi+1].row:rows.length;
     const label=blocks[bi].label;
-    const monthKey=labelToKey(label,bi+1);
+    const monthKey=resolvedKeys[bi];
     let tanStart=-1,ruiStart=-1;
     for(let i=blockStart;i<blockEnd;i++){
       const c2=String(rows[i]?.[2]||'').trim();
@@ -400,7 +415,10 @@ function parseAllExcel(buf){
     const tangetsu=tanStart>=0?parseSection(rows,tanStart+2,tanEnd):[];
     const ruikei=ruiStart>=0?parseSection(rows,ruiStart+2,blockEnd):[];
     if(tangetsu.length>0||ruikei.length>0){
-      result[monthKey]={monthKey,label:labelToDisp(label),tangetsu,ruikei};
+      // monthKeyから表示名を生成（例: 2025-12 → "2025/12月末", 2026-01 → "1月末"）
+      const [ky,km]=monthKey.split('-');
+      const dispLabel=parseInt(ky)===2026?parseInt(km)+'月末':ky+'/'+parseInt(km)+'月末';
+      result[monthKey]={monthKey,label:dispLabel,tangetsu,ruikei};
     }
   }
   return result;
