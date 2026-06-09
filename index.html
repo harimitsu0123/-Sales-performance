@@ -407,11 +407,19 @@ function parseAllExcel(buf){
 }
 
 function labelToKey(label,idx){
-  const m=label.match(/^(\d+)\//);
+  // "2025/11/末" のような 年/月/... 形式
+  const m4=label.match(/^(\d{4})\/(\d{1,2})\//);
+  if(m4)return m4[1]+'-'+String(m4[2]).padStart(2,'0');
+  // "1/末" のような 月/... 形式（2026年と仮定）
+  const m=label.match(/^(\d{1,2})\//);
   return m?'2026-'+String(m[1]).padStart(2,'0'):'2026-'+String(idx).padStart(2,'0');
 }
 function labelToDisp(label){
-  const m=label.match(/^(\d+)\/(.+)/);
+  // "2025/11/末" 形式
+  const m4=label.match(/^(\d{4})\/(\d{1,2})\/(.+)/);
+  if(m4)return m4[1]+'/'+m4[2]+'月'+(m4[3]==='末'?'末':'/'+m4[3]);
+  // "1/末" 形式
+  const m=label.match(/^(\d{1,2})\/(.+)/);
   if(!m)return label;
   return m[2]==='末'?m[1]+'月末':m[1]+'月/'+m[2];
 }
