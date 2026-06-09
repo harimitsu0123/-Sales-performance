@@ -633,16 +633,50 @@ function renderAnalysis(){
 
 function sortedMonths(){return Object.keys(allData).sort();}
 
+let selectedYear=null;
 function renderMonthBar(){
   const bar=document.getElementById('overview-month-bar');
-  bar.innerHTML='<span class="month-label">表示月：</span>';
-  sortedMonths().forEach(k=>{
+  bar.innerHTML='';
+  const months=sortedMonths();
+  if(!months.length)return;
+
+  // 年リストを抽出
+  const years=[...new Set(months.map(k=>k.split('-')[0]))].sort();
+  if(!selectedYear||!years.includes(selectedYear))selectedYear=selectedMonth?selectedMonth.split('-')[0]:years[years.length-1];
+
+  // 年タブ
+  const yearRow=document.createElement('div');
+  yearRow.style.cssText='display:flex;gap:6px;margin-bottom:8px;align-items:center';
+  yearRow.innerHTML='<span class="month-label">年：</span>';
+  years.forEach(y=>{
+    const b=document.createElement('button');
+    b.className='month-chip'+(y===selectedYear?' active':'');
+    b.textContent=y+'年';
+    b.onclick=()=>{
+      selectedYear=y;
+      // その年の最後の月を選択
+      const ym=months.filter(k=>k.startsWith(y));
+      if(ym.length){selectedMonth=ym[ym.length-1];renderOverview();}
+      renderMonthBar();
+    };
+    yearRow.appendChild(b);
+  });
+  bar.appendChild(yearRow);
+
+  // 月チップ（選択年のみ）
+  const monthRow=document.createElement('div');
+  monthRow.style.cssText='display:flex;flex-wrap:wrap;gap:6px;align-items:center';
+  monthRow.innerHTML='<span class="month-label">月：</span>';
+  months.filter(k=>k.startsWith(selectedYear)).forEach(k=>{
     const b=document.createElement('button');
     b.className='month-chip'+(k===selectedMonth?' active':'');
-    b.textContent=allData[k].label;
+    // 月だけ表示（"1月末" の形式から年部分を除く）
+    const label=allData[k].label.replace(/^\d{4}\/(\d+月)/, '$1');
+    b.textContent=label;
     b.onclick=()=>{selectedMonth=k;renderOverview();renderMonthBar();};
-    bar.appendChild(b);
+    monthRow.appendChild(b);
   });
+  bar.appendChild(monthRow);
 }
 
 function renderDataList(){
