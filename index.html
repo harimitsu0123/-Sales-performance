@@ -746,8 +746,7 @@ function ovSection(data,label,pfx){
   const yCls=tot.yoy==null?'neutral':tot.yoy>=100?'up':'down';
   const gv=tot.gap!=null?(tot.gap>=0?'▲ +':'▼ ')+fmt(tot.gap)+'円':'—';
   const gCls=tot.gap==null?'neutral':tot.gap>=0?'up':'down';
-  return`<div class="metric-grid">
-  <div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:10px;margin-bottom:1.5rem">
+  return`<div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:10px;margin-bottom:1.5rem">
     <div class="metric-card"><div class="metric-label">2026年 ${label}売上</div><div class="metric-value" style="white-space:nowrap">${fmt(tot.y2026)}<small>円</small></div><div class="metric-sub ${yCls}">前年比 ${yv}</div></div>
     <div class="metric-card"><div class="metric-label">前年比</div><div class="metric-value ${yCls}">${yv}</div><div class="metric-sub neutral">&nbsp;</div></div>
     <div class="metric-card"><div class="metric-label">達成率</div><div class="metric-value ${acCls}">${ac}</div><div class="metric-sub ${gCls}">${gv}</div></div>
