@@ -758,7 +758,7 @@ function ovSection(data,label,pfx){
     <div class="chart-wrap" style="height:230px"><canvas id="${pfx}-chart"></canvas></div>
   </div>
   <div class="table-card"><table>
-    <thead><tr><th>区分</th><th>2025年（円）</th><th>2026年（円）</th><th>前年比</th><th>目標（円）</th><th>達成率</th><th>過不足（円）</th></tr></thead>
+    <thead><tr><th class="col-brand">区分</th><th>2025年</th><th>2026年</th><th>前年比</th><th>目標</th><th>達成率</th><th>過不足</th></tr></thead>
     <tbody>${tableRows(data)}</tbody>
   </table></div>`;
 }
@@ -767,7 +767,7 @@ function tableRows(data){
   return data.map(r=>{
     const fp=r.ach?Math.min(r.ach,115):0;
     const fc=r.ach==null?'#ccc':r.ach>=100?'#1a9e72':r.ach>=80?'#b87215':'#e04444';
-    return`<tr><td>${r.name}</td><td>${fmt(r.y2025)}</td><td style="font-weight:700">${fmt(r.y2026)}</td>
+    return`<tr><td class="col-brand">${r.name}</td><td>${fmt(r.y2025)}</td><td style="font-weight:700">${fmt(r.y2026)}</td>
     <td style="color:${yoyC(r.yoy)}">${r.yoy!=null?r.yoy.toFixed(1)+'%':'—'}</td>
     <td>${fmt(r.target)}</td>
     <td><span class="progress-bar"><span class="progress-fill" style="width:${fp}%;background:${fc}"></span></span><span style="color:${achC(r.ach)}">${r.ach!=null?r.ach.toFixed(1)+'%':'—'}</span></td>
