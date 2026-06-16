@@ -114,6 +114,7 @@ tbody tr:hover:not(:last-child){background:#faf9f7}
 <!-- 月次推移 -->
 <div id="page-trend" class="page">
   <div class="topbar"><div class="page-title">月次推移</div></div>
+  <div id="trend-year-bar" class="month-bar"></div>
   <div id="trend-brand-filter" class="brand-filter"></div>
   <div id="trend-content"><div class="empty-state"><div class="emoji">📈</div><p style="color:var(--text3)">データ読み込み中...</p></div></div>
 </div>
@@ -802,8 +803,18 @@ function drawOvChart(id,data){
 // TREND
 function renderTrend(){
   const el=document.getElementById('trend-content');
-  const months=sortedMonths();
-  if(!months.length){el.innerHTML='<div class="empty-state"><div class="emoji">📈</div><p style="color:var(--text3)">データなし</p></div>';renderTrendFilter([]);return;}
+  const allMonths=sortedMonths();
+  if(!allMonths.length){el.innerHTML='<div class="empty-state"><div class="emoji">📈</div><p style="color:var(--text3)">データなし</p></div>';renderTrendFilter([]);return;}
+
+  // 年タブ
+  const years=[...new Set(allMonths.map(k=>k.split('-')[0]))].sort();
+  if(!window._trendYear||!years.includes(window._trendYear))window._trendYear=years[years.length-1];
+  const ybar=document.getElementById('trend-year-bar');
+  if(ybar){
+    ybar.innerHTML='<span class="month-label">年：</span>'+
+      years.map(y=>`<button class="month-chip${y===window._trendYear?' active':''}" onclick="window._trendYear='${y}';renderTrend()">${y}年</button>`).join('');
+  }
+  const months=allMonths.filter(k=>k.startsWith(window._trendYear));
   const BRANDS=getBrands();
   renderTrendFilter(BRANDS);
   const active=activeTrendBrands.size>0?[...activeTrendBrands]:BRANDS.slice(0,5);
