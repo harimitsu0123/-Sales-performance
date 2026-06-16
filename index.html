@@ -534,7 +534,17 @@ function renderAllMonths(){
     return tips.map(i=>`<div style="padding:7px 12px;border-radius:6px;background:${clr[i.t]};border-left:3px solid ${bdr[i.t]};font-size:12px;line-height:1.6">${i.s}</div>`).join('');
   };
 
-  el.innerHTML=[...months].reverse().map((k,idx)=>{
+  const years=[...new Set(months.map(k=>k.split('-')[0]))].sort();
+  const amYear=window._amYear||(years[years.length-1]);
+  window._amYear=amYear;
+
+  const yearTabs=`<div style="display:flex;gap:6px;margin-bottom:1.25rem;align-items:center">
+    <span class="month-label">年：</span>
+    ${years.map(y=>`<button class="month-chip${y===amYear?' active':''}" onclick="window._amYear='${y}';renderAllMonths()">${y}年</button>`).join('')}
+  </div>`;
+
+  const filtered=[...months.filter(k=>k.startsWith(amYear))].reverse();
+  el.innerHTML=yearTabs+filtered.map((k,idx)=>{
     const d=allData[k];
     const isOpen=idx===0;
     return`<div style="background:var(--surface);border:0.5px solid var(--border2);border-radius:var(--radius);margin-bottom:1rem;overflow:hidden">
