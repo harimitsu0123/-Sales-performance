@@ -104,6 +104,7 @@ tbody tr:hover:not(:last-child){background:#faf9f7}
   div[style*="grid-template-columns:2fr 1fr 1fr"] .metric-value{font-size:13px!important}
   div[style*="grid-template-columns:2fr 1fr 1fr"] .metric-label{font-size:10px}
   div[style*="grid-template-columns:2fr 1fr 1fr"] .metric-card{padding:10px 8px}
+  .allmonths-grid{grid-template-columns:1fr!important}
 }
 </style>
 </head>
@@ -255,10 +256,11 @@ let activeTrendBrands=new Set();
 })();
 const COLORS=['#3278cc','#1a9e72','#e8963a','#9b5de5','#e04444','#0bb4b4','#b87215','#e84393','#00b4d8'];
 // ブランド一覧をデータから動的に取得（総合計を除く）
+const EXCLUDE_BRANDS=['MAG（2024）','MAG(2024)'];
 function getBrands(){
   const seen=new Set();
   Object.values(allData).forEach(d=>[...d.tangetsu,...d.ruikei].forEach(r=>{
-    if(!r.name.includes('総'))seen.add(r.name);
+    if(!r.name.includes('総')&&!EXCLUDE_BRANDS.includes(r.name))seen.add(r.name);
   }));
   return [...seen];
 }
@@ -575,7 +577,7 @@ function renderAllMonths(){
       </div>
       <div id="m${k}" style="display:${isOpen?'block':'none'};padding:18px 20px">
         <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:14px">${makeInsights(d)}</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px" class="allmonths-grid">
           ${makeSection(d.tangetsu,'単月')}
           ${makeSection(d.ruikei,'累計')}
         </div>
@@ -818,13 +820,13 @@ function drawOvChart(id,data){
   // 重複除去
   const seen=new Set();data=data.filter(r=>{if(seen.has(r.name))return false;seen.add(r.name);return true;});
   const isMobile=window.innerWidth<=700;
-  const dlBar={datalabels:{display:!isMobile,anchor:'end',align:'end',formatter:fmtShort,font:{size:10},color:'#5a5950'}};
+  const dlCfg={display:!isMobile,anchor:'end',align:'end',formatter:fmtShort,font:{size:10},color:'#5a5950'};
   mc(id,{type:'bar',data:{labels:data.map(d=>d.name),datasets:[
-    {label:'2025年',data:data.map(d=>d.y2025),backgroundColor:'#b0cff5',borderRadius:3},
-    {label:'2026年',data:data.map(d=>d.y2026),backgroundColor:'#52c89a',borderRadius:3},
+    {label:'2025年',data:data.map(d=>d.y2025),backgroundColor:'#b0cff5',borderRadius:3,datalabels:dlCfg},
+    {label:'2026年',data:data.map(d=>d.y2026),backgroundColor:'#52c89a',borderRadius:3,datalabels:dlCfg},
     {label:'目標',data:data.map(d=>d.target),type:'line',borderColor:'#bbb',borderWidth:1.5,borderDash:[4,3],pointRadius:3,pointBackgroundColor:'#bbb',backgroundColor:'transparent',tension:0,datalabels:{display:false}}
-  ]},options:{responsive:true,maintainAspectRatio:false,layout:{padding:{top:20}},
-    plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>' '+c.dataset.label+': '+(c.raw||0).toLocaleString('ja-JP')+'円'}},...dlBar},
+  ]},options:{responsive:true,maintainAspectRatio:false,layout:{padding:{top:isMobile?0:20}},
+    plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>' '+c.dataset.label+': '+(c.raw||0).toLocaleString('ja-JP')+'円'}}},
     scales:{y:{ticks:{callback:v=>v.toLocaleString('ja-JP'),font:{size:11},color:'#97958e'},grid:{color:'rgba(0,0,0,0.05)'}},x:{ticks:{font:{size:12},color:'#5a5950'},grid:{display:false}}}}});
 }
 
