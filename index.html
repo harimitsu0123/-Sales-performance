@@ -808,13 +808,15 @@ function renderTrend(){
 
   // 年タブ
   const years=[...new Set(allMonths.map(k=>k.split('-')[0]))].sort();
-  if(!window._trendYear||!years.includes(window._trendYear))window._trendYear=years[years.length-1];
+  const validVals=[...years,'all'];
+  if(!window._trendYear||!validVals.includes(window._trendYear))window._trendYear=years[years.length-1];
   const ybar=document.getElementById('trend-year-bar');
   if(ybar){
     ybar.innerHTML='<span class="month-label">年：</span>'+
+      `<button class="month-chip${'all'===window._trendYear?' active':''}" onclick="window._trendYear='all';renderTrend()">全期間</button>`+
       years.map(y=>`<button class="month-chip${y===window._trendYear?' active':''}" onclick="window._trendYear='${y}';renderTrend()">${y}年</button>`).join('');
   }
-  const months=allMonths.filter(k=>k.startsWith(window._trendYear));
+  const months=window._trendYear==='all'?allMonths:allMonths.filter(k=>k.startsWith(window._trendYear));
   const BRANDS=getBrands();
   renderTrendFilter(BRANDS);
   const active=activeTrendBrands.size>0?[...activeTrendBrands]:BRANDS.slice(0,5);
