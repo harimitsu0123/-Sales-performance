@@ -91,13 +91,19 @@ tbody tr:hover:not(:last-child){background:#faf9f7}
   .sidebar-logo{display:none}
   .sidebar-footer{display:none}
   .nav-btn{white-space:nowrap;padding:6px 10px;font-size:12px}
-  .main{padding:1rem;overflow:auto}
+  .main{padding:.75rem;overflow-x:hidden}
   .grid-2{grid-template-columns:1fr}
   .metric-grid{grid-template-columns:1fr 1fr}
   .page-title{font-size:16px}
   .topbar{margin-bottom:1rem}
+  .chart-wrap{overflow:hidden}
   .chart-wrap canvas{max-height:200px}
-  div[style*="grid-template-columns:2fr 1fr 1fr"]{grid-template-columns:1fr!important}
+  .table-card,.table-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  /* 月次サマリーの3枚カードは横並び */
+  div[style*="grid-template-columns:2fr 1fr 1fr"]{grid-template-columns:1fr 1fr 1fr!important}
+  div[style*="grid-template-columns:2fr 1fr 1fr"] .metric-value{font-size:13px!important}
+  div[style*="grid-template-columns:2fr 1fr 1fr"] .metric-label{font-size:10px}
+  div[style*="grid-template-columns:2fr 1fr 1fr"] .metric-card{padding:10px 8px}
 }
 </style>
 </head>
@@ -811,7 +817,8 @@ function drawOvChart(id,data){
   const el=document.getElementById(id);if(!el)return;
   // 重複除去
   const seen=new Set();data=data.filter(r=>{if(seen.has(r.name))return false;seen.add(r.name);return true;});
-  const dlBar={datalabels:{display:true,anchor:'end',align:'end',formatter:fmtShort,font:{size:10},color:'#5a5950'}};
+  const isMobile=window.innerWidth<=700;
+  const dlBar={datalabels:{display:!isMobile,anchor:'end',align:'end',formatter:fmtShort,font:{size:10},color:'#5a5950'}};
   mc(id,{type:'bar',data:{labels:data.map(d=>d.name),datasets:[
     {label:'2025年',data:data.map(d=>d.y2025),backgroundColor:'#b0cff5',borderRadius:3},
     {label:'2026年',data:data.map(d=>d.y2026),backgroundColor:'#52c89a',borderRadius:3},
