@@ -494,7 +494,7 @@ function renderAllMonths(){
     const yoyC=tot.yoy==null?'var(--text3)':tot.yoy>=100?'var(--green)':'var(--red)';
     return`
       <div style="margin-bottom:8px">
-        <div style="font-size:11px;font-weight:700;color:var(--text3);letter-spacing:1px;margin-bottom:6px">${label}</div>
+        <div style="font-size:13px;font-weight:700;color:var(--text);letter-spacing:.5px;margin-bottom:8px;padding:4px 10px;background:var(--surface2);border-radius:6px;display:inline-block">${label}</div>
         <div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:8px;margin-bottom:10px">
           <div class="metric-card"><div class="metric-label">2026年売上</div><div class="metric-value" style="font-size:16px">${fmt(tot.y2026)}<small>円</small></div></div>
           <div class="metric-card"><div class="metric-label">前年比</div><div class="metric-value" style="font-size:16px;color:${yoyC}">${tot.yoy!=null?tot.yoy.toFixed(1)+'%':'—'}</div></div>
