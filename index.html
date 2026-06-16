@@ -85,7 +85,20 @@ tbody tr:hover:not(:last-child){background:#faf9f7}
 .brand-chip.active{background:var(--text);color:#fff;border-color:var(--text)}
 .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1.25rem}
 .log-item{padding:8px 12px;border-radius:6px;font-size:12px;margin-bottom:6px;display:flex;align-items:center;gap:8px}
-@media(max-width:700px){.grid-2{grid-template-columns:1fr}.sidebar{width:100%;flex-direction:row;padding:.75rem 1rem;overflow-x:auto}.sidebar-logo{display:none}.sidebar-footer{display:none}.nav-btn{white-space:nowrap}}
+@media(max-width:700px){
+  .app{flex-direction:column}
+  .sidebar{width:100%;flex-direction:row;padding:.5rem .75rem;overflow-x:auto;border-right:none;border-bottom:1px solid var(--border2);gap:2px;flex-shrink:0;position:sticky;top:0;z-index:10;background:var(--surface)}
+  .sidebar-logo{display:none}
+  .sidebar-footer{display:none}
+  .nav-btn{white-space:nowrap;padding:6px 10px;font-size:12px}
+  .main{padding:1rem;overflow:auto}
+  .grid-2{grid-template-columns:1fr}
+  .metric-grid{grid-template-columns:1fr 1fr}
+  .page-title{font-size:16px}
+  .topbar{margin-bottom:1rem}
+  .chart-wrap canvas{max-height:200px}
+  div[style*="grid-template-columns:2fr 1fr 1fr"]{grid-template-columns:1fr!important}
+}
 </style>
 </head>
 <body>
