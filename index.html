@@ -169,7 +169,8 @@ tbody tr:hover:not(:last-child){background:#faf9f7}
     <div id="token-status" style="font-size:11px;margin-top:8px"></div>
   </div>
   <div style="margin-top:1rem">
-    <button onclick="clearAllData()" style="padding:8px 18px;border-radius:6px;border:1px solid var(--red);color:var(--red);background:transparent;cursor:pointer;font-size:13px;">🗑 全データをクリア</button>
+    <button onclick="manualSync()" style="padding:8px 18px;border-radius:6px;background:var(--blue);color:#fff;border:none;cursor:pointer;font-size:13px;font-weight:600">☁️ 今すぐクラウドに保存</button>
+    <button onclick="clearAllData()" style="padding:8px 18px;border-radius:6px;border:1px solid var(--red);color:var(--red);background:transparent;cursor:pointer;font-size:13px;margin-left:8px">🗑 全データをクリア</button>
     <span style="font-size:11px;color:var(--text3);margin-left:10px">ブラウザに保存されたデータを削除します</span>
   </div>
 </div>
@@ -716,6 +717,13 @@ function renderDataList(){
 }
 
 function delMonth(k){delete allData[k];if(selectedMonth===k)selectedMonth=sortedMonths()[0]||null;saveData();renderAll();}
+async function manualSync(){
+  if(!getToken()){alert('トークンが設定されていません');return;}
+  const btn=event.target;btn.textContent='☁️ 保存中...';btn.disabled=true;
+  await saveData();
+  btn.textContent='☁️ 今すぐクラウドに保存';btn.disabled=false;
+  alert('クラウドへの保存が完了しました！携帯でリロードしてください。');
+}
 function clearAllData(){if(confirm('全データを削除しますか？')){allData={};selectedMonth=null;localStorage.removeItem(STORAGE_KEY);renderAll();updateDataStatus();}}
 
 function saveToken(){
