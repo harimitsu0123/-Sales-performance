@@ -882,7 +882,8 @@ function renderTrend(){
 
   // 共通テーブル生成関数
   function makeTable(title, dataKey) {
-    let t=`<div class="table-card"><div class="table-head-bar">${title}</div><div class="table-scroll"><table>`;
+    const minW=Math.max(400, months.length*220);
+    let t=`<div class="table-card"><div class="table-head-bar">${title}</div><div class="table-scroll" style="overflow-x:auto;-webkit-overflow-scrolling:touch"><table style="min-width:${minW}px">`;
     // ヘッダー行1: 月ラベル（月ごとに結合）
     t+=`<thead><tr><th class="col-brand" rowspan="2">区分</th>`;
     t+=months.map(k=>`<th class="col-month-label" colspan="4">${allData[k].label}</th>`).join('');
