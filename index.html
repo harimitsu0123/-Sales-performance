@@ -450,9 +450,12 @@ function parseAllExcel(buf){
     const tangetsu=tanStart>=0?parseSection(rows,tanStart+2,tanEnd):[];
     const ruikei=ruiStart>=0?parseSection(rows,ruiStart+2,blockEnd):[];
     if(tangetsu.length>0||ruikei.length>0){
-      // monthKeyから表示名を生成（例: 2025-12 → "2025/12月末", 2026-01 → "1月末"）
+      // 元のラベルから表示名を生成。"6/末"→"6月末"、"6/15"→"6/15" など
       const [ky,km]=monthKey.split('-');
-      const dispLabel=parseInt(ky)===2026?parseInt(km)+'月末':ky+'/'+parseInt(km)+'月末';
+      const rawSuffix=label.replace(/^\d+\//,'');// "末" or "15" or "末" etc
+      const isEOM=rawSuffix==='末'||rawSuffix==='';
+      const suffix=isEOM?'月末':'/' +rawSuffix;
+      const dispLabel=parseInt(ky)===2026?parseInt(km)+suffix:ky+'/'+parseInt(km)+suffix;
       result[monthKey]={monthKey,label:dispLabel,tangetsu,ruikei};
     }
   }
