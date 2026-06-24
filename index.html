@@ -452,12 +452,21 @@ function parseAllExcel(buf){
     const tangetsu=tanStart>=0?parseSection(rows,tanStart+2,tanEnd):[];
     const ruikei=ruiStart>=0?parseSection(rows,ruiStart+2,blockEnd):[];
     if(tangetsu.length>0||ruikei.length>0){
-      // 元のラベルから表示名を生成。"6/末"→"6月末"、"6/15"→"6/15" など
+      // 元のラベルから表示名を生成
       const [ky,km]=monthKey.split('-');
-      const rawSuffix=label.replace(/^\d+\//,'');// "末" or "15" or "末" etc
-      const isEOM=rawSuffix==='末'||rawSuffix==='';
-      const suffix=isEOM?'月末':'/' +rawSuffix;
-      const dispLabel=parseInt(ky)===2026?parseInt(km)+suffix:ky+'/'+parseInt(km)+suffix;
+      let dispLabel;
+      const m4f=label.match(/^(\d{4})\/(\d{1,2})\/(.*)/);
+      if(m4f){
+        // "2025/10/末" → "2025/10月末"、"2025/10/15" → "2025/10/15"
+        const sfx=m4f[3]==='末'?'月末':'/'+m4f[3];
+        dispLabel=m4f[1]+'/'+parseInt(m4f[2])+sfx;
+      } else {
+        // "6/末"→"6月末"、"6/15"→"6/15"
+        const rawSuffix=label.replace(/^\d{1,2}\//,'');
+        const isEOM=rawSuffix==='末'||rawSuffix==='';
+        const suffix=isEOM?'月末':'/'+rawSuffix;
+        dispLabel=parseInt(ky)===2026?parseInt(km)+suffix:ky+'/'+parseInt(km)+suffix;
+      }
       result[monthKey]={monthKey,label:dispLabel,tangetsu,ruikei};
     }
   }
