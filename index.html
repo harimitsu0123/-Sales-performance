@@ -426,7 +426,7 @@ function parseAllExcel(buf){
     }
     const m=b.label.match(/^(\d{1,2})\//);
     const mo=m?parseInt(m[1]):bi+1;
-    if(prevMonth!==null&&mo<=prevMonth)inferYear++;
+    if(prevMonth!==null&&mo<prevMonth)inferYear++;
     prevMonth=mo;
     return inferYear+'-'+String(mo).padStart(2,'0');
   });
