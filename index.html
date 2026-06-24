@@ -278,6 +278,22 @@ function normBrand(name){
   return name;
 }
 
+// 2025年はブランドをグループ合算で達成率を計算
+const BRAND_GROUPS=[
+  {brands:['ハリミツ','墨族','蛸墨族','BORIJIN']},
+  {brands:['MAGBITE','MAG','山波']},
+];
+function applyGroupTargets(section){
+  BRAND_GROUPS.forEach(g=>{
+    const members=section.filter(r=>g.brands.includes(r.name));
+    const targetRow=members.find(r=>r.target!=null);
+    if(!targetRow)return;
+    const total=members.reduce((s,r)=>s+(r.y2026||0),0);
+    const rate=targetRow.target>0?total/targetRow.target*100:null;
+    const gap=targetRow.target!=null?total-targetRow.target:null;
+    members.forEach(r=>{if(r.ach==null){r.ach=rate;r.gap=gap;}});
+  });
+}
 const fmt=n=>n==null?'—':Math.round(n).toLocaleString('ja-JP');
 const achC=a=>a==null?'var(--text3)':a>=100?'var(--green)':a>=80?'var(--amber)':'var(--red)';
 const yoyC=y=>y==null?'var(--text3)':y>=100?'var(--green)':'var(--red)';
@@ -454,6 +470,7 @@ function parseAllExcel(buf){
     const tanEnd=ruiStart>=0?ruiStart:blockEnd;
     const tangetsu=tanStart>=0?parseSection(rows,tanStart+2,tanEnd):[];
     const ruikei=ruiStart>=0?parseSection(rows,ruiStart+2,blockEnd):[];
+    applyGroupTargets(tangetsu);applyGroupTargets(ruikei);
     if(tangetsu.length>0||ruikei.length>0){
       // 元のラベルから表示名を生成
       const [ky,km]=monthKey.split('-');
