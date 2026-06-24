@@ -729,8 +729,8 @@ function renderMonthBar(){
   months.filter(k=>k.startsWith(selectedYear)).forEach(k=>{
     const b=document.createElement('button');
     b.className='month-chip'+(k===selectedMonth?' active':'');
-    // 月だけ表示（"1月末" の形式から年部分を除く）
-    const label=allData[k].label.replace(/^\d{4}\/(\d+月)/, '$1');
+    // 月番号だけ表示（"2025/7月末" や "2025/7/25" → "7月"）
+    const label=parseInt(k.split('-')[1])+'月';
     b.textContent=label;
     b.onclick=()=>{selectedMonth=k;renderOverview();renderMonthBar();};
     monthRow.appendChild(b);
