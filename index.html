@@ -758,7 +758,7 @@ async function manualSync(){
   btn.textContent='☁️ 今すぐクラウドに保存';btn.disabled=false;
   alert('クラウドへの保存が完了しました！携帯でリロードしてください。');
 }
-function clearAllData(){if(confirm('全データを削除しますか？')){allData={};selectedMonth=null;localStorage.removeItem(STORAGE_KEY);renderAll();updateDataStatus();}}
+function clearAllData(){if(confirm('全データを削除しますか？')){allData={};selectedMonth=null;localStorage.removeItem(STORAGE_KEY);saveData();renderAll();updateDataStatus();}}
 
 function saveToken(){
   const t=document.getElementById('token-input').value.trim();
