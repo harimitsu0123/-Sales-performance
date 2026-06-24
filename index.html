@@ -508,7 +508,7 @@ function renderAllMonths(){
       <div style="margin-bottom:8px">
         <div style="font-size:13px;font-weight:700;color:var(--text);letter-spacing:.5px;margin-bottom:8px;padding:4px 10px;background:var(--surface2);border-radius:6px;display:inline-block">${label}</div>
         <div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:8px;margin-bottom:10px">
-          <div class="metric-card"><div class="metric-label">2026年売上</div><div class="metric-value" style="font-size:16px">${fmt(tot.y2026)}<small>円</small></div></div>
+          <div class="metric-card"><div class="metric-label">${amYear}年売上</div><div class="metric-value" style="font-size:16px">${fmt(tot.y2026)}<small>円</small></div></div>
           <div class="metric-card"><div class="metric-label">前年比</div><div class="metric-value" style="font-size:16px;color:${yoyC}">${tot.yoy!=null?tot.yoy.toFixed(1)+'%':'—'}</div></div>
           <div class="metric-card"><div class="metric-label">達成率</div><div class="metric-value" style="font-size:16px;color:${achC}">${tot.ach!=null?tot.ach.toFixed(1)+'%':'—'}</div></div>
         </div>
@@ -791,6 +791,8 @@ function renderOverview(){
 }
 
 function ovSection(data,label,pfx){
+  const curYear=selectedMonth?selectedMonth.split('-')[0]:'2026';
+  const prevYear=String(parseInt(curYear)-1);
   const tot=data.find(r=>r.name.includes('総'))||data[data.length-1]||{};
   const ac=tot.ach!=null?tot.ach.toFixed(1)+'%':'—';
   const acCls=tot.ach==null?'neutral':tot.ach>=100?'up':'down';
@@ -799,13 +801,13 @@ function ovSection(data,label,pfx){
   const gv=tot.gap!=null?(tot.gap>=0?'▲ +':'▼ ')+fmt(tot.gap)+'円':'—';
   const gCls=tot.gap==null?'neutral':tot.gap>=0?'up':'down';
   return`<div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:10px;margin-bottom:1.5rem">
-    <div class="metric-card"><div class="metric-label">2026年 ${label}売上</div><div class="metric-value" style="white-space:nowrap">${fmt(tot.y2026)}<small>円</small></div><div class="metric-sub ${yCls}">前年比 ${yv}</div></div>
+    <div class="metric-card"><div class="metric-label">${curYear}年 ${label}売上</div><div class="metric-value" style="white-space:nowrap">${fmt(tot.y2026)}<small>円</small></div><div class="metric-sub ${yCls}">前年比 ${yv}</div></div>
     <div class="metric-card"><div class="metric-label">前年比</div><div class="metric-value ${yCls}">${yv}</div><div class="metric-sub neutral">&nbsp;</div></div>
     <div class="metric-card"><div class="metric-label">達成率</div><div class="metric-value ${acCls}">${ac}</div><div class="metric-sub ${gCls}">${gv}</div></div>
   </div>
   <div class="chart-card">
     <div class="chart-head"><span class="chart-title">ブランド別 ${label}売上</span>
-      <div class="legend"><span><span class="legend-dot" style="background:#b0cff5"></span>2025年</span><span><span class="legend-dot" style="background:#52c89a"></span>2026年</span><span><span class="legend-dot" style="background:#bbb"></span>目標</span></div>
+      <div class="legend"><span><span class="legend-dot" style="background:#b0cff5"></span>${prevYear}年</span><span><span class="legend-dot" style="background:#52c89a"></span>${curYear}年</span><span><span class="legend-dot" style="background:#bbb"></span>目標</span></div>
     </div>
     <div class="chart-wrap" style="height:230px"><canvas id="${pfx}-chart"></canvas></div>
   </div>
