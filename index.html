@@ -237,7 +237,9 @@ async function loadFromGitHub(){
     if(!r.ok)return false;
     const d=await r.json();
     if(d&&typeof d==='object'&&Object.keys(d).length>0){
-      allData=d;selectedMonth=Object.keys(d).sort().pop()||null;
+      // クラウドとローカルをマージ（どちらか片方にしかないキーも保持）
+      allData={...d,...allData};
+      selectedMonth=Object.keys(allData).sort().pop()||null;
       return true;
     }
   }catch(e){}
@@ -250,10 +252,11 @@ loadData();
 let selectedMonth=Object.keys(allData).sort().pop()||null;
 let activeTrendBrands=new Set();
 
-// GitHubから最新データを取得してページ起動
+// GitHubから最新データを取得してページ起動（ローカルとマージして保存）
 (async()=>{
   const ok=await loadFromGitHub();
-  if(ok){saveData();renderAll();}
+  if(ok){await saveData();renderAll();}
+  else renderAll();
   updateDataStatus();
 })();
 const COLORS=['#3278cc','#1a9e72','#e8963a','#9b5de5','#e04444','#0bb4b4','#b87215','#e84393','#00b4d8'];
