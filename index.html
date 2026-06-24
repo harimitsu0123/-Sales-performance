@@ -341,8 +341,10 @@ function parseSection(rows,start,end){
     if(!r||r.every(c=>c==null))break;
     const name=normBrand(String(r[1]||r[0]||'').trim());
     if(!name)continue;
-    const y5=toN(r[2]),y6=toN(r[3]),yoy=toN(r[4]),tgt=toN(r[5]),ach=toN(r[6]),gap=toN(r[7]);
+    const y5=toN(r[2]),y6=toN(r[3]),yoy=toN(r[4]),tgt=toN(r[5]),achRaw=toN(r[6]),gap=toN(r[7]);
     if(y5==null&&y6==null)continue;
+    // achは小数（0.98など）で入る想定。10以上は誤読み（売上金額など）として無効扱い
+    const ach=(achRaw!=null&&achRaw<10)?achRaw:null;
     res.push({name,y2025:y5?Math.round(y5):0,y2026:y6?Math.round(y6):0,
       target:tgt?Math.round(tgt):null,yoy:yoy!=null?yoy*100:null,
       ach:ach!=null?ach*100:null,gap:gap!=null?Math.round(gap):null});
