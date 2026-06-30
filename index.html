@@ -383,7 +383,7 @@ function handleFiles(files){
     const r=new FileReader();
     r.onload=async e=>{
       try{
-        const months=parseAllExcel(new Uint8Array(e.target.result));
+        const months=parseAllExcel(new Uint8Array(e.target.result),new Date(f.lastModified));
         const keys=Object.keys(months);
         if(keys.length>0){
           keys.forEach(k=>{allData[k]=months[k];});
@@ -417,10 +417,59 @@ function addSonotaRow(section){
   }
 }
 
-function parseAllExcel(buf){
+function parseHikakuExcel(rows,fileDate){
+  // 比較売上フォーマット検出: row0[0]="データ区分", row0[4]="ブランド名"
+  const h=rows[0]||[];
+  if(String(h[0]||'').trim()!=='データ区分'||String(h[4]||'').trim()!=='ブランド名')return null;
+  // 列ヘッダーから期間を解析 "A.25年 1月～25年 6月" or "A.26年 6月～26年 6月"
+  const hdr=String(h[5]||'');
+  const pm=hdr.match(/(\d{2})年\s*(\d{1,2})月[^\d]*(\d{2})年\s*(\d{1,2})月/);
+  if(!pm)return null;
+  const startY=2000+parseInt(pm[1]),startM=parseInt(pm[2]);
+  const endY=2000+parseInt(pm[3]),endM=parseInt(pm[4]);
+  // monthKey
+  const monthKey=endY+'-'+String(endM).padStart(2,'0');
+  // ラベル決定（ファイル更新日時で途中日を判定）
+  const fd=fileDate||new Date();
+  const fdY=fd.getFullYear(),fdM=fd.getMonth()+1,fdD=fd.getDate();
+  const isEndOfMonth=fdD>=28||(fdY!==endY||fdM!==endM);
+  const suffix=isEndOfMonth?'月末':'/'+fdD;
+  const dispLabel=endY===2026?endM+suffix:endY+'/'+endM+suffix;
+  // ブランド行をパース
+  const isSingle=startM===endM&&startY===endY;
+  const normH=n=>{
+    n=String(n||'').trim();
+    if(n.includes('合'))return'総合計';
+    if(n==='山波商店')return'山波';
+    if(n==='OEM(他社ﾌﾞﾗﾝﾄﾞ)')return'OEM';
+    return n;
+  };
+  const section=[];
+  for(let i=1;i<rows.length;i++){
+    const r=rows[i];if(!r)continue;
+    const name=normH(r[4]);
+    if(!name)continue;
+    const yA=toN(r[5]),yB=toN(r[6]);
+    if(yA==null&&yB==null)continue;
+    const yoy=(yA&&yA>0)?yB/yA*100:null;
+    section.push({name,y2025:Math.round(yA||0),y2026:Math.round(yB||0),
+      target:null,yoy,ach:null,gap:null});
+  }
+  applyGroupTargets(section);
+  const result={};
+  result[monthKey]={monthKey,label:dispLabel,
+    tangetsu:isSingle?section:[],
+    ruikei:isSingle?[]:section};
+  return result;
+}
+
+function parseAllExcel(buf,fileDate){
   const wb=XLSX.read(buf,{type:'array'});
   const ws=wb.Sheets[wb.SheetNames[0]];
   const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:null});
+  // 比較売上フォーマット判定
+  const hikaku=parseHikakuExcel(rows,fileDate);
+  if(hikaku)return hikaku;
   const result={};
   const blocks=[];
   // 月ヘッダー行を検索（col Bが空、col Cが "1/末" や "6/15" 等）
