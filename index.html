@@ -462,7 +462,7 @@ function parseHikakuExcel(rows,fileDate){
   const fdY=fd.getFullYear(),fdM=fd.getMonth()+1,fdD=fd.getDate();
   const isEndOfMonth=fdD>=28||(fdY!==endY||fdM!==endM);
   const suffix=isEndOfMonth?'月末':'/'+fdD;
-  const dispLabel=endY===2026?endM+suffix:endY+'/'+endM+suffix;
+  const dispLabel=endM+suffix;
   // ブランド行をパース
   const isSingle=startM===endM&&startY===endY;
   const normH=n=>{
@@ -551,18 +551,17 @@ function parseAllExcel(buf,fileDate){
     if(tangetsu.length>0||ruikei.length>0){
       // 元のラベルから表示名を生成
       const [ky,km]=monthKey.split('-');
+      // 年タブで年は表示するのでラベルは月だけ（"6月末" や "6/15"）
       let dispLabel;
       const m4f=label.match(/^(\d{4})\/(\d{1,2})\/(.*)/);
       if(m4f){
-        // "2025/10/末" → "2025/10月末"、"2025/10/15" → "2025/10/15"
-        const sfx=m4f[3]==='末'?'月末':'/'+m4f[3];
-        dispLabel=m4f[1]+'/'+parseInt(m4f[2])+sfx;
+        const sfx=m4f[3]==='末'?'月末':parseInt(m4f[3])<28?'/'+m4f[3]:'月末';
+        dispLabel=parseInt(m4f[2])+sfx;
       } else {
-        // "6/末"→"6月末"、"6/15"→"6/15"
         const rawSuffix=label.replace(/^\d{1,2}\//,'');
         const isEOM=rawSuffix==='末'||rawSuffix==='';
-        const suffix=isEOM?'月末':'/'+rawSuffix;
-        dispLabel=parseInt(ky)===2026?parseInt(km)+suffix:ky+'/'+parseInt(km)+suffix;
+        const day=isEOM?null:parseInt(rawSuffix);
+        dispLabel=parseInt(km)+(isEOM||day>=28?'月末':'/'+rawSuffix);
       }
       result[monthKey]={monthKey,label:dispLabel,tangetsu,ruikei};
     }
@@ -1098,7 +1097,8 @@ function renderBrand(){
       }).join('');
   }
   const latest=allData[window._brandMonth];
-  const dispLabel=latest.label;
+  // 保存済みラベルの年プレフィックス（"2025/12月末"→"12月末"）を除去
+  const dispLabel=latest.label.replace(/^\d{4}\//,'');
   el.innerHTML=`<div style="font-size:12px;color:var(--text3);margin-bottom:12px">📅 ${dispLabel}現在のデータ</div>
   <div class="chart-card"><div class="chart-head"><span class="chart-title">ブランド別 累計売上構成（${dispLabel}）</span></div><div class="chart-wrap" style="height:260px"><canvas id="br-pie"></canvas></div></div>
   <div class="chart-card"><div class="chart-head"><span class="chart-title">ブランド別 累計達成率（${dispLabel}）</span></div><div class="chart-wrap" style="height:240px"><canvas id="br-ach"></canvas></div></div>`;
