@@ -267,6 +267,7 @@ async function loadFromGitHub(){
     if(d&&typeof d==='object'&&Object.keys(d).length>0){
       // クラウドとローカルをマージ（どちらか片方にしかないキーも保持）
       allData={...d,...allData};
+      normalizeLabels();
       selectedMonth=Object.keys(allData).sort().pop()||null;
       return true;
     }
@@ -274,7 +275,11 @@ async function loadFromGitHub(){
   return false;
 }
 
-function loadData(){try{const s=localStorage.getItem(STORAGE_KEY);if(s)allData=JSON.parse(s);}catch(e){}}
+function normalizeLabels(){
+  // 保存済みの "2025/12月末" → "12月末" など年プレフィックスを除去
+  Object.values(allData).forEach(d=>{if(d.label)d.label=d.label.replace(/^\d{4}\//,'');});
+}
+function loadData(){try{const s=localStorage.getItem(STORAGE_KEY);if(s){allData=JSON.parse(s);normalizeLabels();}}catch(e){}}
 let allData={};
 loadData();
 let selectedMonth=Object.keys(allData).sort().pop()||null;
