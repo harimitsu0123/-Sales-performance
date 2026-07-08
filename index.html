@@ -109,15 +109,19 @@ tbody tr:hover:not(:last-child){background:#faf9f7}
   .allmonths-grid{grid-template-columns:1fr!important}
 }
 @media print{
-  .sidebar,.print-btn,.month-chip,.month-label,.topbar button,.view-tabs{display:none!important}
+  .sidebar,.print-btn,.month-chip,.month-label,.topbar button,.view-tabs,.month-bar,.brand-filter{display:none!important}
   .app{display:block}
   .main{padding:0;overflow:visible}
-  .page{display:block!important;page-break-after:always}
-  .chart-card,.table-card,.metric-card{break-inside:avoid;box-shadow:none;border:1px solid #ccc}
-  .chart-wrap canvas{max-height:none!important}
+  .page{display:none!important}
+  .page.active{display:block!important}
+  .chart-card,.table-card,.metric-card{break-inside:avoid;box-shadow:none;border:1px solid #ccc;margin-bottom:12px}
+  .chart-wrap{overflow:visible!important}
+  .chart-wrap canvas{display:none}
+  .chart-wrap img.print-img{display:block!important;width:100%;max-height:280px;object-fit:contain}
   .table-scroll{overflow:visible!important}
-  table{min-width:unset!important;font-size:11px}
+  table{min-width:unset!important;width:100%;font-size:11px}
   .page-title{font-size:18px;font-weight:700;margin-bottom:12px}
+  .grid-2{grid-template-columns:1fr 1fr}
 }
 </style>
 </head>
@@ -1129,6 +1133,22 @@ function switchView(id,btn){
   document.getElementById(id).classList.add('active');
   btn.classList.add('active');
 }
+
+// 印刷前にcanvasを画像に変換、印刷後に元に戻す
+window.addEventListener('beforeprint',()=>{
+  document.querySelectorAll('.chart-wrap canvas').forEach(c=>{
+    try{
+      const img=document.createElement('img');
+      img.src=c.toDataURL('image/png');
+      img.className='print-img';
+      img.style.cssText='display:none;width:100%;max-height:280px;object-fit:contain';
+      c.parentNode.insertBefore(img,c.nextSibling);
+    }catch(e){}
+  });
+});
+window.addEventListener('afterprint',()=>{
+  document.querySelectorAll('.print-img').forEach(img=>img.remove());
+});
 
 // ページ起動時に保存データを表示
 if(Object.keys(allData).length>0)renderAll();
