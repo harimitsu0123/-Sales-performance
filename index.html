@@ -168,6 +168,7 @@ tbody tr:hover:not(:last-child){background:#faf9f7}
     <div class="page-title">ブランド分析</div>
     <button class="print-btn" onclick="window.print()" style="padding:5px 12px;border-radius:6px;border:0.5px solid var(--border2);background:var(--surface);cursor:pointer;font-size:12px">🖨️ 印刷/PDF</button>
   </div>
+  <div id="brand-bar" class="month-bar"></div>
   <div id="brand-content"><div class="empty-state"><div class="emoji">🏷️</div><p style="color:var(--text3)">データ読み込み中...</p></div></div>
 </div>
 
@@ -1077,9 +1078,30 @@ function renderBrand(){
   const el=document.getElementById('brand-content');
   const months=sortedMonths();
   if(!months.length){el.innerHTML='<div class="empty-state"><div class="emoji">🏷️</div><p style="color:var(--text3)">データなし</p></div>';return;}
-  el.innerHTML=`<div class="chart-card"><div class="chart-head"><span class="chart-title">ブランド別 累計売上構成（最新月・2026年）</span></div><div class="chart-wrap" style="height:260px"><canvas id="br-pie"></canvas></div></div>
-  <div class="chart-card"><div class="chart-head"><span class="chart-title">ブランド別 累計達成率（最新月）</span></div><div class="chart-wrap" style="height:240px"><canvas id="br-ach"></canvas></div></div>`;
-  const latest=allData[months[months.length-1]];
+  // 年・月バー
+  const years=[...new Set(months.map(k=>k.split('-')[0]))].sort();
+  if(!window._brandYear||!years.includes(window._brandYear))window._brandYear=years[years.length-1];
+  const yearMonths=months.filter(k=>k.startsWith(window._brandYear));
+  if(!window._brandMonth||!yearMonths.includes(window._brandMonth))window._brandMonth=yearMonths[yearMonths.length-1];
+  const bar=document.getElementById('brand-bar');
+  if(bar){
+    bar.innerHTML='<span class="month-label">年：</span>'+
+      years.map(y=>`<button class="month-chip${y===window._brandYear?' active':''}" onclick="window._brandYear='${y}';window._brandMonth=null;renderBrand()">${y}年</button>`).join('')+
+      '<span class="month-label" style="margin-left:12px">月：</span>'+
+      yearMonths.map(k=>{
+        const mo=parseInt(k.split('-')[1]);
+        const orig=allData[k].label;
+        const midMatch=orig.match(/\/(\d+)$/);
+        const isMid=midMatch&&parseInt(midMatch[1])<28;
+        const lbl=isMid?mo+'/'+midMatch[1]:mo+'月';
+        return`<button class="month-chip${k===window._brandMonth?' active':''}" onclick="window._brandMonth='${k}';renderBrand()">${lbl}</button>`;
+      }).join('');
+  }
+  const latest=allData[window._brandMonth];
+  const dispLabel=latest.label;
+  el.innerHTML=`<div style="font-size:12px;color:var(--text3);margin-bottom:12px">📅 ${dispLabel}現在のデータ</div>
+  <div class="chart-card"><div class="chart-head"><span class="chart-title">ブランド別 累計売上構成（${dispLabel}）</span></div><div class="chart-wrap" style="height:260px"><canvas id="br-pie"></canvas></div></div>
+  <div class="chart-card"><div class="chart-head"><span class="chart-title">ブランド別 累計達成率（${dispLabel}）</span></div><div class="chart-wrap" style="height:240px"><canvas id="br-ach"></canvas></div></div>`;
   // ブランド名で重複除去（先頭の行を採用）
   const dedup=arr=>{const seen=new Set();return arr.filter(r=>{const k=r.name;if(seen.has(k))return false;seen.add(k);return true;});};
   const pd=dedup(latest.ruikei.filter(r=>!r.name.includes('総')&&r.y2026>0));
@@ -1100,7 +1122,7 @@ function renderBrand(){
   const rows2=[...td,{...totR,name:'総合計',_total:true}].filter(r=>r.name);
   const tbl=document.createElement('div');
   tbl.className='chart-card';
-  tbl.innerHTML=`<div class="chart-head"><span class="chart-title">ブランド別 売上金額・達成率（累計）</span></div>
+  tbl.innerHTML=`<div class="chart-head"><span class="chart-title">ブランド別 売上金額・達成率（${dispLabel}）</span></div>
   <div class="table-scroll"><table>
   <thead><tr><th style="text-align:left">ブランド</th><th>前年</th><th>当年</th><th>前年比</th><th>達成率</th></tr></thead>
   <tbody>${rows2.map(r=>{
