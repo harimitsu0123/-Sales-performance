@@ -108,6 +108,17 @@ tbody tr:hover:not(:last-child){background:#faf9f7}
   div[style*="grid-template-columns:2fr 1fr 1fr"] .metric-card{padding:10px 8px}
   .allmonths-grid{grid-template-columns:1fr!important}
 }
+@media print{
+  .sidebar,.print-btn,.month-chip,.month-label,.topbar button,.view-tabs{display:none!important}
+  .app{display:block}
+  .main{padding:0;overflow:visible}
+  .page{display:block!important;page-break-after:always}
+  .chart-card,.table-card,.metric-card{break-inside:avoid;box-shadow:none;border:1px solid #ccc}
+  .chart-wrap canvas{max-height:none!important}
+  .table-scroll{overflow:visible!important}
+  table{min-width:unset!important;font-size:11px}
+  .page-title{font-size:18px;font-weight:700;margin-bottom:12px}
+}
 </style>
 </head>
 <body>
@@ -127,7 +138,10 @@ tbody tr:hover:not(:last-child){background:#faf9f7}
 <div id="page-overview" class="page active">
   <div class="topbar">
     <div class="page-title">月次サマリー</div>
-    <span id="overview-month-label" style="font-size:13px;color:var(--text3)"></span>
+    <div style="display:flex;align-items:center;gap:10px">
+      <span id="overview-month-label" style="font-size:13px;color:var(--text3)"></span>
+      <button class="print-btn" onclick="window.print()" style="padding:5px 12px;border-radius:6px;border:0.5px solid var(--border2);background:var(--surface);cursor:pointer;font-size:12px">🖨️ 印刷/PDF</button>
+    </div>
   </div>
   <div class="month-bar" id="overview-month-bar"><span class="month-label">表示月：</span></div>
   <div id="overview-content"><div class="empty-state"><div class="emoji">📊</div><p style="color:var(--text3)">データ読み込み中...</p></div></div>
@@ -135,7 +149,10 @@ tbody tr:hover:not(:last-child){background:#faf9f7}
 
 <!-- 月次推移 -->
 <div id="page-trend" class="page">
-  <div class="topbar"><div class="page-title">月次推移</div></div>
+  <div class="topbar">
+    <div class="page-title">月次推移</div>
+    <button class="print-btn" onclick="window.print()" style="padding:5px 12px;border-radius:6px;border:0.5px solid var(--border2);background:var(--surface);cursor:pointer;font-size:12px">🖨️ 印刷/PDF</button>
+  </div>
   <div id="trend-year-bar" class="month-bar"></div>
   <div id="trend-brand-filter" class="brand-filter"></div>
   <div id="trend-content"><div class="empty-state"><div class="emoji">📈</div><p style="color:var(--text3)">データ読み込み中...</p></div></div>
@@ -143,13 +160,19 @@ tbody tr:hover:not(:last-child){background:#faf9f7}
 
 <!-- ブランド分析 -->
 <div id="page-brand" class="page">
-  <div class="topbar"><div class="page-title">ブランド分析</div></div>
+  <div class="topbar">
+    <div class="page-title">ブランド分析</div>
+    <button class="print-btn" onclick="window.print()" style="padding:5px 12px;border-radius:6px;border:0.5px solid var(--border2);background:var(--surface);cursor:pointer;font-size:12px">🖨️ 印刷/PDF</button>
+  </div>
   <div id="brand-content"><div class="empty-state"><div class="emoji">🏷️</div><p style="color:var(--text3)">データ読み込み中...</p></div></div>
 </div>
 
 <!-- 全月一覧 -->
 <div id="page-allmonths" class="page">
-  <div class="topbar"><div class="page-title">全月一覧</div></div>
+  <div class="topbar">
+    <div class="page-title">全月一覧</div>
+    <button class="print-btn" onclick="window.print()" style="padding:5px 12px;border-radius:6px;border:0.5px solid var(--border2);background:var(--surface);cursor:pointer;font-size:12px">🖨️ 印刷/PDF</button>
+  </div>
   <div id="allmonths-content"><div class="empty-state"><div class="emoji">📅</div><p style="color:var(--text3)">データなし</p></div></div>
 </div>
 
@@ -1067,6 +1090,28 @@ function renderBrand(){
   }}});
   const ad=dedup(latest.ruikei.filter(r=>!r.name.includes('総')&&r.ach!=null));
   mc('br-ach',{type:'bar',data:{labels:ad.map(d=>d.name),datasets:[{label:'達成率',data:ad.map(d=>d.ach),backgroundColor:ad.map(d=>d.ach>=100?'#52c89a':d.ach>=80?'#f5c542':'#e87070'),borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,layout:{padding:{top:20}},plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>' 達成率: '+c.raw.toFixed(1)+'%'}},datalabels:{display:true,anchor:'end',align:'end',formatter:v=>v!=null?v.toFixed(1)+'%':'',font:{size:11,weight:'bold'},color:'#5a5950'}},scales:{y:{ticks:{callback:v=>v+'%',font:{size:11},color:'#97958e'},grid:{color:'rgba(0,0,0,0.05)'},min:0},x:{ticks:{font:{size:12}},grid:{display:false}}}}});
+  // ブランド別金額・達成率テーブル
+  const td=dedup(latest.ruikei.filter(r=>!r.name.includes('総')));
+  const totR=latest.ruikei.find(r=>r.name.includes('総'))||{};
+  const rows2=[...td,{...totR,name:'総合計',_total:true}].filter(r=>r.name);
+  const tbl=document.createElement('div');
+  tbl.className='chart-card';
+  tbl.innerHTML=`<div class="chart-head"><span class="chart-title">ブランド別 売上金額・達成率（累計）</span></div>
+  <div class="table-scroll"><table>
+  <thead><tr><th style="text-align:left">ブランド</th><th>前年</th><th>当年</th><th>前年比</th><th>達成率</th></tr></thead>
+  <tbody>${rows2.map(r=>{
+    const isTot=r._total||r.name==='総合計';
+    const yoyC=r.yoy==null?'':r.yoy>=100?'color:var(--green)':'color:var(--red)';
+    const aC=r.ach==null?'':r.ach>=100?'color:var(--green)':r.ach>=80?'color:var(--amber)':'color:var(--red)';
+    return`<tr style="${isTot?'font-weight:700;background:var(--surface2)':''}">
+      <td style="text-align:left;font-weight:${isTot?700:500}">${r.name}</td>
+      <td style="text-align:right">${fmt(r.y2025)}</td>
+      <td style="text-align:right;font-weight:600">${fmt(r.y2026)}</td>
+      <td style="text-align:right;${yoyC}">${r.yoy!=null?r.yoy.toFixed(1)+'%':'—'}</td>
+      <td style="text-align:right;${aC}">${r.ach!=null?r.ach.toFixed(1)+'%':'—'}</td>
+    </tr>`;
+  }).join('')}</tbody></table></div>`;
+  el.appendChild(tbl);
 }
 
 // ROUTING
