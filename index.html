@@ -419,7 +419,7 @@ function handleFiles(files){
     const r=new FileReader();
     r.onload=async e=>{
       try{
-        const months=parseAllExcel(new Uint8Array(e.target.result),new Date());
+        const months=parseAllExcel(new Uint8Array(e.target.result),new Date(f.lastModified));
         const keys=Object.keys(months);
         if(keys.length>0){
           keys.forEach(k=>{
@@ -573,18 +573,14 @@ function parseAllExcel(buf,fileDate){
       // 年タブで年は表示するのでラベルは月だけ（"6月末" や "6/15"）
       let dispLabel;
       const m4f=label.match(/^(\d{4})\/(\d{1,2})\/(.*)/);
-      const uploadDate=fileDate||new Date();
-      const uploadY=uploadDate.getFullYear(),uploadM=uploadDate.getMonth()+1;
-      const dataY=parseInt(ky),dataM=parseInt(km);
-      const isPastMonth=uploadY>dataY||(uploadY===dataY&&uploadM>dataM);
       if(m4f){
-        const sfx=m4f[3]==='末'?'月末':(!isPastMonth&&parseInt(m4f[3])<28)?'/'+m4f[3]:'月末';
+        const sfx=m4f[3]==='末'?'月末':parseInt(m4f[3])<28?'/'+m4f[3]:'月末';
         dispLabel=parseInt(m4f[2])+sfx;
       } else {
         const rawSuffix=label.replace(/^\d{1,2}\//,'');
         const isEOM=rawSuffix==='末'||rawSuffix==='';
         const day=isEOM?null:parseInt(rawSuffix);
-        dispLabel=parseInt(km)+(isEOM||day>=28||isPastMonth?'月末':'/'+rawSuffix);
+        dispLabel=parseInt(km)+(isEOM||day>=28?'月末':'/'+rawSuffix);
       }
       result[monthKey]={monthKey,label:dispLabel,tangetsu,ruikei};
     }
