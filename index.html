@@ -246,7 +246,7 @@ async function saveData(){
   try{localStorage.setItem(STORAGE_KEY,JSON.stringify(allData));}catch(e){}
   updateDataStatus();
   const token=getToken();
-  if(!token)return;
+  if(!token)return false;
   try{
     const content=btoa(unescape(encodeURIComponent(JSON.stringify(allData))));
     // 既存ファイルのSHAを取得
@@ -254,9 +254,11 @@ async function saveData(){
     try{const r=await fetch(API_URL,{headers:{'Authorization':'token '+token}});if(r.ok){const d=await r.json();sha=d.sha;}}catch(e){}
     const body={message:'Update data',content};
     if(sha)body.sha=sha;
-    await fetch(API_URL,{method:'PUT',headers:{'Authorization':'token '+token,'Content-Type':'application/json'},body:JSON.stringify(body)});
+    const res=await fetch(API_URL,{method:'PUT',headers:{'Authorization':'token '+token,'Content-Type':'application/json'},body:JSON.stringify(body)});
+    if(!res.ok)throw new Error('HTTP '+res.status);
     updateDataStatus('pushed');
-  }catch(e){console.error('GitHub push failed',e);}
+    return true;
+  }catch(e){console.error('GitHub push failed',e);return false;}
 }
 
 async function loadFromGitHub(){
@@ -276,8 +278,21 @@ async function loadFromGitHub(){
 }
 
 function normalizeLabels(){
-  // 保存済みの "2025/12月末" → "12月末" など年プレフィックスを除去
-  Object.values(allData).forEach(d=>{if(d.label)d.label=d.label.replace(/^\d{4}\//,'');});
+  const now=new Date(),nowY=now.getFullYear(),nowM=now.getMonth()+1;
+  Object.entries(allData).forEach(([k,d])=>{
+    if(!d.label)return;
+    // 年プレフィックス除去 "2025/12月末" → "12月末"
+    d.label=d.label.replace(/^\d{4}\//,'');
+    // 途中日付("6/23"等)で既に月が過ぎていたら月末に変換
+    const mid=d.label.match(/^(\d+)\/(\d+)$/);
+    if(mid&&parseInt(mid[2])<28){
+      const [ky,km]=k.split('-');
+      const dataY=parseInt(ky),dataM=parseInt(km);
+      if(nowY>dataY||(nowY===dataY&&nowM>dataM)){
+        d.label=dataM+'月末';
+      }
+    }
+  });
 }
 function loadData(){try{const s=localStorage.getItem(STORAGE_KEY);if(s){allData=JSON.parse(s);normalizeLabels();}}catch(e){}}
 let allData={};
@@ -416,13 +431,24 @@ function handleFiles(files){
     const r=new FileReader();
     r.onload=async e=>{
       try{
-        const months=parseAllExcel(new Uint8Array(e.target.result),new Date(f.lastModified));
+        const months=parseAllExcel(new Uint8Array(e.target.result),new Date());
         const keys=Object.keys(months);
         if(keys.length>0){
-          keys.forEach(k=>{allData[k]=months[k];});
+          keys.forEach(k=>{
+            if(allData[k]){
+              // 単月・累計を別々にマージ（送ったほうだけ更新、もう片方は保持）
+              if(months[k].tangetsu&&months[k].tangetsu.length>0)allData[k].tangetsu=months[k].tangetsu;
+              if(months[k].ruikei&&months[k].ruikei.length>0)allData[k].ruikei=months[k].ruikei;
+              allData[k].label=months[k].label;
+            } else {
+              allData[k]=months[k];
+            }
+          });
+          normalizeLabels();
           selectedMonth=keys[keys.length-1];
-          await saveData();
-          addLog(f.name,keys.length+'ヶ月分のデータを読み込みました',true);
+          const pushed=await saveData();
+          const cloudMsg=getToken()?(pushed?'☁️ クラウド保存完了':'⚠️ クラウド保存失敗'):'';
+          addLog(f.name,keys.length+'ヶ月分のデータを読み込みました'+(cloudMsg?' '+cloudMsg:''),true);
           renderAll();
         } else {
           // 旧形式フォールバック
@@ -559,14 +585,18 @@ function parseAllExcel(buf,fileDate){
       // 年タブで年は表示するのでラベルは月だけ（"6月末" や "6/15"）
       let dispLabel;
       const m4f=label.match(/^(\d{4})\/(\d{1,2})\/(.*)/);
+      const uploadDate=fileDate||new Date();
+      const uploadY=uploadDate.getFullYear(),uploadM=uploadDate.getMonth()+1;
+      const dataY=parseInt(ky),dataM=parseInt(km);
+      const isPastMonth=uploadY>dataY||(uploadY===dataY&&uploadM>dataM);
       if(m4f){
-        const sfx=m4f[3]==='末'?'月末':parseInt(m4f[3])<28?'/'+m4f[3]:'月末';
+        const sfx=m4f[3]==='末'?'月末':(!isPastMonth&&parseInt(m4f[3])<28)?'/'+m4f[3]:'月末';
         dispLabel=parseInt(m4f[2])+sfx;
       } else {
         const rawSuffix=label.replace(/^\d{1,2}\//,'');
         const isEOM=rawSuffix==='末'||rawSuffix==='';
         const day=isEOM?null:parseInt(rawSuffix);
-        dispLabel=parseInt(km)+(isEOM||day>=28?'月末':'/'+rawSuffix);
+        dispLabel=parseInt(km)+(isEOM||day>=28||isPastMonth?'月末':'/'+rawSuffix);
       }
       result[monthKey]={monthKey,label:dispLabel,tangetsu,ruikei};
     }
@@ -793,6 +823,17 @@ function renderAnalysis(){
 
 function sortedMonths(){return Object.keys(allData).sort();}
 
+function chipLabel(k){
+  const [ky,km]=k.split('-');
+  const mo=parseInt(km);
+  const now=new Date();
+  const isPast=now.getFullYear()>parseInt(ky)||(now.getFullYear()===parseInt(ky)&&now.getMonth()+1>mo);
+  if(isPast)return mo+'月';
+  const stored=allData[k]?.label||'';
+  const mid=stored.match(/\/(\d+)$/);
+  return(mid&&parseInt(mid[1])<28)?mo+'/'+mid[1]:mo+'月';
+}
+
 let selectedYear=null;
 function renderMonthBar(){
   const bar=document.getElementById('overview-month-bar');
@@ -831,12 +872,7 @@ function renderMonthBar(){
     const b=document.createElement('button');
     b.className='month-chip'+(k===selectedMonth?' active':'');
     // 月末は"X月"、途中日付は"X/日" で表示（28日以降は月末扱い）
-    const mo=parseInt(k.split('-')[1]);
-    const origLabel=allData[k].label;
-    const midMatch=origLabel.match(/\/(\d+)$/);
-    const isMidMonth=midMatch&&parseInt(midMatch[1])<28;
-    const label=isMidMonth?mo+'/'+midMatch[1]:mo+'月';
-    b.textContent=label;
+    b.textContent=chipLabel(k);
     b.onclick=()=>{selectedMonth=k;renderOverview();renderMonthBar();};
     monthRow.appendChild(b);
   });
@@ -850,7 +886,7 @@ function renderDataList(){
   let h=`<div class="table-card"><div class="table-head-bar">読み込み済みデータ（${months.length}ヶ月分）</div><table><thead><tr><th>月</th><th>単月 行数</th><th>累計 行数</th><th></th></tr></thead><tbody>`;
   months.forEach(k=>{
     const d=allData[k];
-    h+=`<tr><td><strong>${d.label}</strong></td><td>${d.tangetsu.length}行</td><td>${d.ruikei.length}行</td><td style="text-align:right"><button onclick="delMonth('${k}')" style="font-size:11px;padding:3px 10px;border-radius:4px;border:0.5px solid var(--border2);background:var(--surface2);cursor:pointer;color:var(--red)">削除</button></td></tr>`;
+    h+=`<tr><td><strong>${chipLabel(k)}</strong></td><td>${d.tangetsu.length}行</td><td>${d.ruikei.length}行</td><td style="text-align:right"><button onclick="delMonth('${k}')" style="font-size:11px;padding:3px 10px;border-radius:4px;border:0.5px solid var(--border2);background:var(--surface2);cursor:pointer;color:var(--red)">削除</button></td></tr>`;
   });
   h+='</tbody></table></div>';el.innerHTML=h;
 }
