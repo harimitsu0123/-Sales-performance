@@ -255,10 +255,10 @@ async function saveData(){
     const body={message:'Update data',content};
     if(sha)body.sha=sha;
     const res=await fetch(API_URL,{method:'PUT',headers:{'Authorization':'token '+token,'Content-Type':'application/json'},body:JSON.stringify(body)});
-    if(!res.ok)throw new Error('HTTP '+res.status);
+    if(!res.ok){const t=await res.text();throw new Error('HTTP '+res.status+': '+t.slice(0,100));}
     updateDataStatus('pushed');
     return true;
-  }catch(e){console.error('GitHub push failed',e);return false;}
+  }catch(e){console.error('GitHub push failed',e);return {ok:false,msg:e.message};}
 }
 
 async function loadFromGitHub(){
@@ -434,8 +434,9 @@ function handleFiles(files){
           });
           normalizeLabels();
           selectedMonth=keys[keys.length-1];
-          const pushed=await saveData();
-          const cloudMsg=getToken()?(pushed?'☁️ クラウド保存完了':'⚠️ クラウド保存失敗'):'';
+          const saveResult=await saveData();
+          const pushed=saveResult===true;
+          const cloudMsg=getToken()?(pushed?'☁️ クラウド保存完了':'⚠️ クラウド保存失敗'+(saveResult?.msg?' ('+saveResult.msg+')':'')):'';
           addLog(f.name,keys.length+'ヶ月分のデータを読み込みました'+(cloudMsg?' '+cloudMsg:''),true);
           renderAll();
         } else {
