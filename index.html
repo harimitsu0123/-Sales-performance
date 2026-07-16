@@ -239,7 +239,7 @@ const RAW_URL=`https://raw.githubusercontent.com/${REPO}/main/${DATA_FILE}`;
 const API_URL=`https://api.github.com/repos/${REPO}/contents/${DATA_FILE}`;
 const TOKEN_KEY='gh_token_v1';
 
-function getToken(){return localStorage.getItem(TOKEN_KEY)||'';}
+function getToken(){return (localStorage.getItem(TOKEN_KEY)||'').replace(/[^\x20-\x7E]/g,'').trim();}
 function setToken(t){if(t)localStorage.setItem(TOKEN_KEY,t);else localStorage.removeItem(TOKEN_KEY);}
 
 async function saveData(){
