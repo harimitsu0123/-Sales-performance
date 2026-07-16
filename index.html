@@ -419,7 +419,7 @@ function handleFiles(files){
     const r=new FileReader();
     r.onload=async e=>{
       try{
-        const months=parseAllExcel(new Uint8Array(e.target.result),new Date(f.lastModified));
+        const months=parseAllExcel(new Uint8Array(e.target.result),new Date());
         const keys=Object.keys(months);
         if(keys.length>0){
           keys.forEach(k=>{
