@@ -468,6 +468,7 @@ function addSonotaRow(section){
 function parseHikakuExcel(rows,fileDate){
   // 比較売上フォーマット検出: row0[0]="データ区分", row0[4]="ブランド名"
   const h=rows[0]||[];
+  console.log('[hikaku] h[0]=',JSON.stringify(h[0]),'h[4]=',JSON.stringify(h[4]),'h[5]=',JSON.stringify(h[5]));
   if(String(h[0]||'').trim()!=='データ区分'||String(h[4]||'').trim()!=='ブランド名')return null;
   // 列ヘッダーから期間を解析 "A.25年 1月～25年 6月" or "A.26年 6月～26年 6月"
   const hdr=String(h[5]||'');
