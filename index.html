@@ -908,7 +908,7 @@ function updateTokenStatus(){
   if(!el)return;
   const t=getToken();
   el.innerHTML=t
-    ?'✅ トークン設定済み — Excelアップロード時に自動クラウド保存されます'
+    ?`✅ トークン設定済み（${t.slice(0,8)}...${t.slice(-4)}・${t.length}文字）`
     :'⚠️ 未設定 — このブラウザのみにデータが保存されます';
   el.style.color=t?'var(--green)':'var(--amber)';
 }
