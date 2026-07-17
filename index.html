@@ -329,6 +329,18 @@ function applyGroupTargets(section){
     const gap=targetRow.target!=null?total-targetRow.target:null;
     members.forEach(r=>{if(r.ach==null){r.ach=rate;r.gap=gap;}});
   });
+  // 総合計の達成率を全ブランドの目標合計から計算（Excelから取れない場合の補完）
+  const tot=section.find(r=>r.name.includes('総'));
+  if(tot&&tot.ach==null){
+    const withTgt=section.filter(r=>!r.name.includes('総')&&r.target!=null);
+    const tSum=withTgt.reduce((s,r)=>s+r.target,0);
+    if(tSum>0){
+      const vSum=withTgt.reduce((s,r)=>s+(r.y2026||0),0);
+      tot.ach=vSum/tSum*100;
+      tot.target=tSum;
+      tot.gap=vSum-tSum;
+    }
+  }
 }
 const fmt=n=>n==null?'—':Math.round(n).toLocaleString('ja-JP');
 const achC=a=>a==null?'var(--text3)':a>=100?'var(--green)':a>=80?'var(--amber)':'var(--red)';
