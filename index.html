@@ -320,13 +320,20 @@ function applyGroupTargets(section){
   // 総合計の達成率を全ブランドの目標合計から計算（Excelから取れない場合の補完）
   const tot=section.find(r=>r.name.includes('総'));
   if(tot&&tot.ach==null){
-    const withTgt=section.filter(r=>!r.name.includes('総')&&!EXCLUDE_BRANDS.includes(r.name)&&r.target>0);
-    const tSum=withTgt.reduce((s,r)=>s+r.target,0);
-    if(tSum>0){
-      const vSum=withTgt.reduce((s,r)=>s+(r.y2026||0),0);
-      tot.ach=vSum/tSum*100;
-      tot.target=tSum;
-      tot.gap=vSum-tSum;
+    // 総合計行のtargetがExcelから取れていればそれを直接使う
+    if(tot.target&&tot.target>0){
+      tot.ach=(tot.y2026||0)/tot.target*100;
+      tot.gap=(tot.y2026||0)-tot.target;
+    } else {
+      // なければ除外ブランド以外の目標合計から計算
+      const withTgt=section.filter(r=>!r.name.includes('総')&&!EXCLUDE_BRANDS.includes(r.name)&&r.target>0);
+      const tSum=withTgt.reduce((s,r)=>s+r.target,0);
+      if(tSum>0){
+        const vSum=withTgt.reduce((s,r)=>s+(r.y2026||0),0);
+        tot.ach=vSum/tSum*100;
+        tot.target=tSum;
+        tot.gap=vSum-tSum;
+      }
     }
   }
 }
@@ -687,7 +694,7 @@ function renderAllMonths(){
       s:`${tan.yoy>=100?'📈':'📉'} 単月前年比 <strong>${tan.yoy.toFixed(1)}%</strong>（${fmt(tan.y2025)}→${fmt(tan.y2026)}円）`});
     if(rui?.yoy!=null)tips.push({t:rui.yoy>=100?'up':'down',
       s:`${rui.yoy>=100?'📈':'📉'} 累計前年比 <strong>${rui.yoy.toFixed(1)}%</strong>（${fmt(rui.y2025)}→${fmt(rui.y2026)}円）`});
-    const brands=d.tangetsu.filter(r=>!r.name.includes('総')&&r.yoy!=null).sort((a,b)=>b.yoy-a.yoy);
+    const brands=d.tangetsu.filter(r=>!r.name.includes('総')&&!EXCLUDE_BRANDS.includes(r.name)&&r.yoy!=null).sort((a,b)=>b.yoy-a.yoy);
     const over=brands.filter(r=>r.yoy>=120);
     const under=brands.filter(r=>r.yoy<80);
     if(over.length)tips.push({t:'up',s:`🔺 前年比120%超：<strong>${over.map(r=>r.name+'('+r.yoy.toFixed(0)+'%)').join('・')}</strong>`});
@@ -771,7 +778,7 @@ function renderAnalysis(){
   }
 
   // ブランド別前年比（好調・不調）
-  const brands=cur.tangetsu.filter(r=>!r.name.includes('総')&&r.yoy!=null);
+  const brands=cur.tangetsu.filter(r=>!r.name.includes('総')&&!EXCLUDE_BRANDS.includes(r.name)&&r.yoy!=null);
   const yoyOver=brands.filter(r=>r.yoy>=120).sort((a,b)=>b.yoy-a.yoy);
   const yoyUnder=brands.filter(r=>r.yoy<80).sort((a,b)=>a.yoy-b.yoy);
   if(yoyOver.length)insights.push({type:'up',
