@@ -333,7 +333,7 @@ function applyGroupTargets(section){
   // 総合計の達成率を全ブランドの目標合計から計算（Excelから取れない場合の補完）
   const tot=section.find(r=>r.name.includes('総'));
   if(tot&&tot.ach==null){
-    const withTgt=section.filter(r=>!r.name.includes('総')&&r.target!=null);
+    const withTgt=section.filter(r=>!r.name.includes('総')&&!EXCLUDE_BRANDS.includes(r.name)&&r.target>0);
     const tSum=withTgt.reduce((s,r)=>s+r.target,0);
     if(tSum>0){
       const vSum=withTgt.reduce((s,r)=>s+(r.y2026||0),0);
