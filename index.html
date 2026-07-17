@@ -297,7 +297,7 @@ let activeTrendBrands=new Set();
 })();
 const COLORS=['#3278cc','#1a9e72','#e8963a','#9b5de5','#e04444','#0bb4b4','#b87215','#e84393','#00b4d8'];
 // ブランド一覧をデータから動的に取得（総合計を除く）
-const EXCLUDE_BRANDS=['MAG（2024）','MAG(2024)'];
+const EXCLUDE_BRANDS=['MAG（2024）','MAG(2024)','仕入れ商品','その他','値引き','アハティ','OEM'];
 function getBrands(){
   const seen=new Set();
   Object.values(allData).forEach(d=>[...d.tangetsu,...d.ruikei].forEach(r=>{
