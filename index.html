@@ -466,16 +466,19 @@ function addSonotaRow(section){
 }
 
 function parseHikakuExcel(rows,fileDate,fileName){
-  // 比較売上フォーマット検出: row0[0]="データ区分", row0[4]="ブランド名"
+  // 比較売上フォーマット検出: row0[4]="ブランド名" かつ row0[5]が日付範囲
   const h=rows[0]||[];
-  console.log('[hikaku] h[0]=',JSON.stringify(h[0]),'h[4]=',JSON.stringify(h[4]),'h[5]=',JSON.stringify(h[5]));
-  if(String(h[0]||'').trim()!=='データ区分'||String(h[4]||'').trim()!=='ブランド名')return null;
+  if(String(h[4]||'').trim()!=='ブランド名')return null;
   // 列ヘッダーから期間を解析 "A.25年 1月～25年 6月" or "A.26年 6月～26年 6月"
   const hdr=String(h[5]||'');
   const pm=hdr.match(/(\d{2})年\s*(\d{1,2})月[^\d]*(\d{2})年\s*(\d{1,2})月/);
   if(!pm)return null;
   const startY=2000+parseInt(pm[1]),startM=parseInt(pm[2]);
   const endY=2000+parseInt(pm[3]),endM=parseInt(pm[4]);
+  // 列Aが当年か前年かをヘッダーの年で判定
+  const colAYear=2000+parseInt(pm[1]);
+  const curYear=new Date().getFullYear();
+  const colAIsCurrent=colAYear===curYear;
   // monthKey
   const monthKey=endY+'-'+String(endM).padStart(2,'0');
   // ラベル決定（ファイル更新日時で途中日を判定）
@@ -499,11 +502,12 @@ function parseHikakuExcel(rows,fileDate,fileName){
     const r=rows[i];if(!r)continue;
     const name=normH(r[4]);
     if(!name)continue;
-    const yA=toN(r[5]),yB=toN(r[6]);
-    if(yA==null&&yB==null)continue;
-    const yoy=(yA&&yA>0)?yB/yA*100:null;
-    section.push({name,y2025:Math.round(yA||0),y2026:Math.round(yB||0),
-      target:null,yoy,ach:null,gap:null});
+    const rA=toN(r[5]),rB=toN(r[6]);
+    if(rA==null&&rB==null)continue;
+    const y2026=Math.round((colAIsCurrent?rA:rB)||0);
+    const y2025=Math.round((colAIsCurrent?rB:rA)||0);
+    const yoy=(y2025>0)?y2026/y2025*100:null;
+    section.push({name,y2025,y2026,target:null,yoy,ach:null,gap:null});
   }
   applyGroupTargets(section);
   const result={};
