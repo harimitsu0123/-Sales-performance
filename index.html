@@ -929,6 +929,7 @@ function renderOverview(){
 
 function ovSection(data,label,pfx){
   const curYear=selectedMonth?selectedMonth.split('-')[0]:'2026';
+  const curMonthLabel=selectedMonth?parseInt(selectedMonth.split('-')[1])+'月':'';
   const prevYear=String(parseInt(curYear)-1);
   const tot=data.find(r=>r.name.includes('総'))||data[data.length-1]||{};
   const ac=tot.ach!=null?tot.ach.toFixed(1)+'%':'—';
@@ -938,7 +939,7 @@ function ovSection(data,label,pfx){
   const gv=tot.gap!=null?(tot.gap>=0?'▲ +':'▼ ')+fmt(tot.gap)+'円':'—';
   const gCls=tot.gap==null?'neutral':tot.gap>=0?'up':'down';
   return`<div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:10px;margin-bottom:1.5rem">
-    <div class="metric-card"><div class="metric-label">${curYear}年 ${label}売上</div><div class="metric-value" style="white-space:nowrap">${fmt(tot.y2026)}<small>円</small></div><div class="metric-sub ${yCls}">前年比 ${yv}</div></div>
+    <div class="metric-card"><div class="metric-label">${curYear}年 ${curMonthLabel} ${label}売上</div><div class="metric-value" style="white-space:nowrap">${fmt(tot.y2026)}<small>円</small></div><div class="metric-sub ${yCls}">前年比 ${yv}</div></div>
     <div class="metric-card"><div class="metric-label">前年比</div><div class="metric-value ${yCls}">${yv}</div><div class="metric-sub neutral">&nbsp;</div></div>
     <div class="metric-card"><div class="metric-label">達成率</div><div class="metric-value ${acCls}">${ac}</div><div class="metric-sub ${gCls}">${gv}</div></div>
   </div>
