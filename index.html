@@ -454,7 +454,7 @@ function handleFiles(files){
 function addSonotaRow(section){
   const tot=section.find(r=>r.name.includes('総'));
   if(!tot)return;
-  const brands=section.filter(r=>!r.name.includes('総'));
+  const brands=section.filter(r=>!r.name.includes('総')&&!EXCLUDE_BRANDS.includes(r.name));
   const sum25=brands.reduce((s,r)=>s+(r.y2025||0),0);
   const sum26=brands.reduce((s,r)=>s+(r.y2026||0),0);
   const diff25=Math.round((tot.y2025||0)-sum25);
@@ -638,7 +638,7 @@ function renderAllMonths(){
 
   const makeSection=(data,label)=>{
     const tot=data.find(r=>r.name.includes('総'))||{};
-    const brands=data.filter(r=>!r.name.includes('総'));
+    const brands=data.filter(r=>!r.name.includes('総')&&!EXCLUDE_BRANDS.includes(r.name));
     const achC=tot.ach==null?'var(--text3)':tot.ach>=100?'var(--green)':tot.ach>=80?'var(--amber)':'var(--red)';
     const yoyC=tot.yoy==null?'var(--text3)':tot.yoy>=100?'var(--green)':'var(--red)';
     return`
@@ -693,7 +693,7 @@ function renderAllMonths(){
     if(over.length)tips.push({t:'up',s:`🔺 前年比120%超：<strong>${over.map(r=>r.name+'('+r.yoy.toFixed(0)+'%)').join('・')}</strong>`});
     if(under.length)tips.push({t:'down',s:`🔻 前年比80%未満：<strong>${under.map(r=>r.name+'('+r.yoy.toFixed(0)+'%)').join('・')}</strong>`});
     const fmtB=arr=>arr.map(r=>r.name+'('+r.ach.toFixed(0)+'%)').join('・');
-    const achAll=d.tangetsu.filter(r=>!r.name.includes('総'));
+    const achAll=d.tangetsu.filter(r=>!r.name.includes('総')&&!EXCLUDE_BRANDS.includes(r.name));
     const overT=achAll.filter(r=>r.ach!=null&&r.ach>=100);
     const midT=achAll.filter(r=>r.ach!=null&&r.ach>=80&&r.ach<100);
     const underT=achAll.filter(r=>r.ach!=null&&r.ach<80);
@@ -788,7 +788,7 @@ function renderAnalysis(){
 
   // 目標達成・未達（全ブランド表示）
   const fmtBA=arr=>arr.map(r=>r.name+'('+r.ach.toFixed(0)+'%)').join('・');
-  const achAll2=cur.tangetsu.filter(r=>!r.name.includes('総'));
+  const achAll2=cur.tangetsu.filter(r=>!r.name.includes('総')&&!EXCLUDE_BRANDS.includes(r.name));
   const overTarget=achAll2.filter(r=>r.ach!=null&&r.ach>=100);
   const midTarget=achAll2.filter(r=>r.ach!=null&&r.ach>=80&&r.ach<100);
   const underTarget=achAll2.filter(r=>r.ach!=null&&r.ach<80);
@@ -929,8 +929,8 @@ function renderOverview(){
   </div>
   <div id="ov-t" class="view-section active">${ovSection(d.tangetsu,'単月','ovt')}</div>
   <div id="ov-r" class="view-section">${ovSection(d.ruikei,'累計','ovr')}</div>`;
-  drawOvChart('ovt-chart',d.tangetsu.filter(r=>!r.name.includes('総')));
-  drawOvChart('ovr-chart',d.ruikei.filter(r=>!r.name.includes('総')));
+  drawOvChart('ovt-chart',d.tangetsu.filter(r=>!r.name.includes('総')&&!EXCLUDE_BRANDS.includes(r.name)));
+  drawOvChart('ovr-chart',d.ruikei.filter(r=>!r.name.includes('総')&&!EXCLUDE_BRANDS.includes(r.name)));
 }
 
 function ovSection(data,label,pfx){
@@ -1147,7 +1147,7 @@ function renderBrand(){
   const ad=dedup(latest.ruikei.filter(r=>!r.name.includes('総')&&r.ach!=null));
   mc('br-ach',{type:'bar',data:{labels:ad.map(d=>d.name),datasets:[{label:'達成率',data:ad.map(d=>d.ach),backgroundColor:ad.map(d=>d.ach>=100?'#52c89a':d.ach>=80?'#f5c542':'#e87070'),borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,layout:{padding:{top:20}},plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>' 達成率: '+c.raw.toFixed(1)+'%'}},datalabels:{display:true,anchor:'end',align:'end',formatter:v=>v!=null?v.toFixed(1)+'%':'',font:{size:11,weight:'bold'},color:'#5a5950'}},scales:{y:{ticks:{callback:v=>v+'%',font:{size:11},color:'#97958e'},grid:{color:'rgba(0,0,0,0.05)'},min:0},x:{ticks:{font:{size:12}},grid:{display:false}}}}});
   // ブランド別金額・達成率テーブル
-  const td=dedup(latest.ruikei.filter(r=>!r.name.includes('総')));
+  const td=dedup(latest.ruikei.filter(r=>!r.name.includes('総')&&!EXCLUDE_BRANDS.includes(r.name)));
   const totR=latest.ruikei.find(r=>r.name.includes('総'))||{};
   const rows2=[...td,{...totR,name:'総合計',_total:true}].filter(r=>r.name);
   const tbl=document.createElement('div');
