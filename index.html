@@ -192,22 +192,8 @@ tbody tr:hover:not(:last-child){background:#faf9f7}
   </div>
   <div id="upload-log" style="margin-top:1rem"></div>
   <div id="data-list" style="margin-top:1.5rem"></div>
-  <!-- GitHub設定 -->
-  <div style="margin-top:1.5rem;background:var(--surface);border:0.5px solid var(--border2);border-radius:var(--radius);padding:16px 18px">
-    <div style="font-size:13px;font-weight:600;margin-bottom:4px">☁️ クラウド同期設定</div>
-    <div style="font-size:12px;color:var(--text3);margin-bottom:12px">設定するとExcelアップロード時に自動でクラウドに保存→全員が同じデータを見られます</div>
-    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-      <input id="token-input" type="password" placeholder="GitHubトークンを入力（ghp_...）"
-        style="flex:1;min-width:200px;padding:8px 12px;border:0.5px solid var(--border2);border-radius:6px;font-size:13px;background:var(--surface)"
-        value="">
-      <button onclick="saveToken()" style="padding:8px 16px;border-radius:6px;background:var(--blue);color:#fff;border:none;cursor:pointer;font-size:13px;font-weight:600">保存</button>
-      <button onclick="clearToken()" style="padding:8px 12px;border-radius:6px;border:0.5px solid var(--border2);background:transparent;cursor:pointer;font-size:13px">削除</button>
-    </div>
-    <div id="token-status" style="font-size:11px;margin-top:8px"></div>
-  </div>
   <div style="margin-top:1rem">
-    <button onclick="manualSync()" style="padding:8px 18px;border-radius:6px;background:var(--blue);color:#fff;border:none;cursor:pointer;font-size:13px;font-weight:600">☁️ 今すぐクラウドに保存</button>
-    <button onclick="clearAllData()" style="padding:8px 18px;border-radius:6px;border:1px solid var(--red);color:var(--red);background:transparent;cursor:pointer;font-size:13px;margin-left:8px">🗑 全データをクリア</button>
+    <button onclick="clearAllData()" style="padding:8px 18px;border-radius:6px;border:1px solid var(--red);color:var(--red);background:transparent;cursor:pointer;font-size:13px">🗑 全データをクリア</button>
     <span style="font-size:11px;color:var(--text3);margin-left:10px">ブラウザに保存されたデータを削除します</span>
   </div>
 </div>
