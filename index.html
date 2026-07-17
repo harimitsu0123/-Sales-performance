@@ -282,7 +282,8 @@ function normalizeLabels(){
     if(d.label)d.label=d.label.replace(/^\d{4}\//,'');
   });
 }
-function loadData(){try{const s=localStorage.getItem(STORAGE_KEY);if(s){allData=JSON.parse(s);normalizeLabels();}}catch(e){}}
+function loadData(){try{const s=localStorage.getItem(STORAGE_KEY);if(s){allData=JSON.parse(s);normalizeLabels();reapplyTargets();}}catch(e){}}
+function reapplyTargets(){Object.values(allData).forEach(d=>{applyGroupTargets(d.tangetsu||[]);applyGroupTargets(d.ruikei||[]);});}
 let allData={};
 loadData();
 let selectedMonth=Object.keys(allData).sort().pop()||null;
@@ -291,7 +292,7 @@ let activeTrendBrands=new Set();
 // GitHubから最新データを取得してページ起動（ローカルとマージして保存）
 (async()=>{
   const ok=await loadFromGitHub();
-  if(ok){await saveData();renderAll();}
+  if(ok){reapplyTargets();await saveData();renderAll();}
   else renderAll();
   updateDataStatus();
 })();
