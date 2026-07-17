@@ -929,6 +929,7 @@ function renderOverview(){
   </div>
   <div id="ov-t" class="view-section active">${ovSection(d.tangetsu,'単月','ovt')}</div>
   <div id="ov-r" class="view-section">${ovSection(d.ruikei,'累計','ovr')}</div>`;
+  console.log('[brands]',d.tangetsu.map(r=>r.name));
   drawOvChart('ovt-chart',d.tangetsu.filter(r=>!r.name.includes('総')&&!EXCLUDE_BRANDS.includes(r.name)));
   drawOvChart('ovr-chart',d.ruikei.filter(r=>!r.name.includes('総')&&!EXCLUDE_BRANDS.includes(r.name)));
 }
