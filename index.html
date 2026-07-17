@@ -475,10 +475,11 @@ function parseHikakuExcel(rows,fileDate,fileName){
   if(!pm)return null;
   const startY=2000+parseInt(pm[1]),startM=parseInt(pm[2]);
   const endY=2000+parseInt(pm[3]),endM=parseInt(pm[4]);
-  // 列Aが当年か前年かをヘッダーの年で判定
+  // 列Aと列Bの年を比較して大きい方が当年
   const colAYear=2000+parseInt(pm[1]);
-  const curYear=new Date().getFullYear();
-  const colAIsCurrent=colAYear===curYear;
+  const pmB=String(h[6]||'').match(/(\d{2})年/);
+  const colBYear=pmB?2000+parseInt(pmB[1]):colAYear-1;
+  const colAIsCurrent=colAYear>=colBYear;
   // monthKey
   const monthKey=endY+'-'+String(endM).padStart(2,'0');
   // ラベル決定（ファイル更新日時で途中日を判定）
