@@ -1,4 +1,5 @@
 ﻿<!DOCTYPE html>
+<!-- updated 2026-09-14: layout reorder + auto-derive tangetsu from ruikei diff -->
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
@@ -187,7 +188,15 @@ tbody tr:hover:not(:last-child){background:#faf9f7}
 
   <div id="cloud-alert" style="display:none;padding:10px 14px;border-radius:8px;font-size:12px;font-weight:500;margin-bottom:1rem;line-height:1.6"></div>
 
-  <div class="table-card" style="margin-bottom:1.25rem">
+  <div class="upload-area" id="drop-zone" onclick="document.getElementById('file-input').click()">
+    <input type="file" id="file-input" accept=".xlsx,.xls" multiple>
+    <div class="upload-icon">📁</div>
+    <div class="upload-text">Excelファイルをドラッグ＆ドロップ</div>
+    <div class="upload-sub">または クリックして選択（.xlsx / .xls）· 複数ファイル同時対応</div>
+  </div>
+  <div id="upload-log" style="margin-top:1rem"></div>
+
+  <div class="table-card" style="margin-top:1.5rem">
     <div class="table-head-bar">☁️ クラウド同期設定（GitHub）</div>
     <div style="padding:14px">
       <div id="token-status" style="font-size:12px;font-weight:500;margin-bottom:10px"></div>
@@ -205,14 +214,6 @@ tbody tr:hover:not(:last-child){background:#faf9f7}
       </div>
     </div>
   </div>
-
-  <div class="upload-area" id="drop-zone" onclick="document.getElementById('file-input').click()">
-    <input type="file" id="file-input" accept=".xlsx,.xls" multiple>
-    <div class="upload-icon">📁</div>
-    <div class="upload-text">Excelファイルをドラッグ＆ドロップ</div>
-    <div class="upload-sub">または クリックして選択（.xlsx / .xls）· 複数ファイル同時対応</div>
-  </div>
-  <div id="upload-log" style="margin-top:1rem"></div>
   <div id="data-list" style="margin-top:1.5rem"></div>
   <div style="margin-top:1rem">
     <button onclick="clearAllData()" style="padding:8px 18px;border-radius:6px;border:1px solid var(--red);color:var(--red);background:transparent;cursor:pointer;font-size:13px">🗑 全データをクリア</button>
@@ -451,6 +452,32 @@ dz.addEventListener('dragleave',()=>dz.classList.remove('dragover'));
 dz.addEventListener('drop',e=>{e.preventDefault();dz.classList.remove('dragover');handleFiles(e.dataTransfer.files)});
 fi.addEventListener('change',()=>handleFiles(fi.files));
 
+// 前の暦月キーを返す（例: "2026-07" → "2026-06"）
+function prevMonthKey(monthKey){
+  const [y,m]=monthKey.split('-').map(Number);
+  const pm=m===1?12:m-1,py=m===1?y-1:y;
+  return py+'-'+String(pm).padStart(2,'0');
+}
+// 累計の前月差分から単月を自動計算（累計だけアップロードした場合用）
+function deriveTangetsuFromRuikei(monthKey){
+  const d=allData[monthKey];
+  if(!d||!d.ruikei||!d.ruikei.length)return false;
+  const prev=allData[prevMonthKey(monthKey)];
+  if(!prev||!prev.ruikei||!prev.ruikei.length)return false;
+  const prevMap={};
+  prev.ruikei.forEach(r=>{prevMap[r.name]=r;});
+  const tan=d.ruikei.map(r=>{
+    const p=prevMap[r.name];
+    const y2025=Math.round((r.y2025||0)-(p?p.y2025||0:0));
+    const y2026=Math.round((r.y2026||0)-(p?p.y2026||0:0));
+    const yoy=y2025!==0?y2026/y2025*100:null;
+    return{name:r.name,y2025,y2026,target:null,yoy,ach:null,gap:null};
+  });
+  applyGroupTargets(tan);
+  d.tangetsu=tan;
+  return true;
+}
+
 function handleFiles(files){
   Array.from(files).forEach(async f=>{
     const r=new FileReader();
@@ -459,14 +486,21 @@ function handleFiles(files){
         const months=parseAllExcel(new Uint8Array(e.target.result),new Date(),f.name);
         const keys=Object.keys(months);
         if(keys.length>0){
+          const derived=[],skipped=[];
           keys.forEach(k=>{
+            const gotTan=months[k].tangetsu&&months[k].tangetsu.length>0;
+            const gotRui=months[k].ruikei&&months[k].ruikei.length>0;
             if(allData[k]){
               // 単月・累計を別々にマージ（送ったほうだけ更新、もう片方は保持）
-              if(months[k].tangetsu&&months[k].tangetsu.length>0)allData[k].tangetsu=months[k].tangetsu;
-              if(months[k].ruikei&&months[k].ruikei.length>0)allData[k].ruikei=months[k].ruikei;
+              if(gotTan)allData[k].tangetsu=months[k].tangetsu;
+              if(gotRui)allData[k].ruikei=months[k].ruikei;
               allData[k].label=months[k].label;
             } else {
               allData[k]=months[k];
+            }
+            // 単月が送られてこなかった月は、累計の前月差分から自動計算する
+            if(!gotTan&&gotRui){
+              if(deriveTangetsuFromRuikei(k))derived.push(k);else skipped.push(k);
             }
           });
           normalizeLabels();
@@ -478,6 +512,8 @@ function handleFiles(files){
           else if(pushed){cloudMsg='☁️ クラウド保存完了 — スマホでリロードすれば反映されます。';cloudType='ok';}
           else{cloudMsg='⚠️ クラウド保存に失敗しました'+(saveResult&&saveResult.msg?'（'+saveResult.msg+'）':'')+' — トークンが無効か期限切れの可能性があります。下の設定でトークンを入れ直してください。';cloudType='err';}
           addLog(f.name,keys.length+'ヶ月分のデータを読み込みました',true);
+          if(derived.length)addNote('🧮 単月を累計の差分から自動計算しました（'+derived.map(mlabel).join('・')+'）',false);
+          if(skipped.length)addNote('⚠️ 前月の累計データが無いため単月を自動計算できませんでした（'+skipped.map(mlabel).join('・')+'）。単月ファイルも合わせてアップロードしてください。',true);
           showCloudAlert(cloudMsg,cloudType);
           renderAll();
         } else {
@@ -663,6 +699,16 @@ function addLog(name,key,ok,err){
   div.style.color=ok?'var(--green)':'var(--red)';
   const keyDisp=key&&key.includes('-')?mlabel(key):key||'';
   div.innerHTML=ok?`✓ <strong>${name}</strong> を読み込みました → ${keyDisp}`:`✗ <strong>${name}</strong> 読み込み失敗: ${err}`;
+  log.prepend(div);
+}
+function addNote(msg,warn){
+  const log=document.getElementById('upload-log');
+  if(!log)return;
+  const div=document.createElement('div');
+  div.className='log-item';
+  div.style.background=warn?'var(--amber-bg)':'var(--green-bg)';
+  div.style.color=warn?'var(--amber)':'var(--green)';
+  div.innerHTML=msg;
   log.prepend(div);
 }
 
