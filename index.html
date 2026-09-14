@@ -184,6 +184,28 @@ tbody tr:hover:not(:last-child){background:#faf9f7}
 <!-- データ管理 -->
 <div id="page-upload" class="page">
   <div class="topbar"><div class="page-title">データ管理</div></div>
+
+  <div id="cloud-alert" style="display:none;padding:10px 14px;border-radius:8px;font-size:12px;font-weight:500;margin-bottom:1rem;line-height:1.6"></div>
+
+  <div class="table-card" style="margin-bottom:1.25rem">
+    <div class="table-head-bar">☁️ クラウド同期設定（GitHub）</div>
+    <div style="padding:14px">
+      <div id="token-status" style="font-size:12px;font-weight:500;margin-bottom:10px"></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+        <input id="token-input" type="password" placeholder="GitHubトークンを貼り付け（github_pat_... / ghp_...）" autocomplete="off"
+          style="flex:1;min-width:240px;padding:7px 10px;border:0.5px solid var(--border2);border-radius:6px;font-size:12px;background:var(--surface);color:var(--text)">
+        <button onclick="saveToken()" style="padding:7px 16px;border-radius:6px;border:none;background:var(--blue);color:#fff;cursor:pointer;font-size:12px;font-weight:600">保存</button>
+        <button onclick="clearToken()" style="padding:7px 12px;border-radius:6px;border:0.5px solid var(--border2);background:var(--surface2);cursor:pointer;font-size:12px">削除</button>
+        <button onclick="manualSync(this)" style="padding:7px 12px;border-radius:6px;border:0.5px solid var(--blue);color:var(--blue);background:transparent;cursor:pointer;font-size:12px">☁️ 今すぐクラウドに保存</button>
+      </div>
+      <div style="font-size:11px;color:var(--text3);margin-top:8px;line-height:1.7">
+        トークンはこのブラウザ内だけに保存されます（HTMLやリポジトリには送信されません）。<br>
+        データを入力するPCで1回だけ設定すればOK。スマホなど閲覧のみの端末では不要です。<br>
+        作成先: GitHub → Settings → Developer settings → Fine-grained tokens。対象リポジトリ <code>-Sales-performance</code>、権限 Contents: Read and write。
+      </div>
+    </div>
+  </div>
+
   <div class="upload-area" id="drop-zone" onclick="document.getElementById('file-input').click()">
     <input type="file" id="file-input" accept=".xlsx,.xls" multiple>
     <div class="upload-icon">📁</div>
@@ -214,7 +236,7 @@ function updateDataStatus(state){
   if(n===0){el.innerHTML='データなし';el.style.color='';}
   else{
     const latest=Object.keys(allData).sort().pop();
-    const syncIcon=getToken()?(state==='pushed'?'☁️ 同期済み':'☁️ 同期中...'):'💾 ローカルのみ';
+    const syncIcon=getToken()?(state==='pushed'?'☁️ 同期済み':'⚠️ 未同期'):'💾 このブラウザのみ';
     el.innerHTML=`✅ ${n}ヶ月分<br><span style="font-size:10px">最新: ${allData[latest].label}</span><br><span style="font-size:10px">${syncIcon}</span>`;
     el.style.color='var(--green)';
   }
@@ -225,9 +247,17 @@ const RAW_URL=`https://raw.githubusercontent.com/${REPO}/main/${DATA_FILE}`;
 const API_URL=`https://api.github.com/repos/${REPO}/contents/${DATA_FILE}`;
 const TOKEN_KEY='gh_token_v1';
 
-const _tk=atob(['Z2hvX2pr','TTk3TFZW','UzE5N1ln','aE9wV3JT','NUl5TU1k','bUtibTRX','N2h6Tg=='].join(''));
-function getToken(){const s=(localStorage.getItem(TOKEN_KEY)||'').replace(/[^\x20-\x7E]/g,'').trim();return s.length>=20?s:_tk;}
-function setToken(t){if(t)localStorage.setItem(TOKEN_KEY,t);else localStorage.removeItem(TOKEN_KEY);}
+// トークンはこのブラウザのlocalStorageにのみ保存する（HTMLには埋め込まない）
+function getToken(){const s=(localStorage.getItem(TOKEN_KEY)||'').replace(/[^\x20-\x7E]/g,'').trim();return s.length>=20?s:'';}
+function setToken(t){if(t)localStorage.setItem(TOKEN_KEY,t.trim());else localStorage.removeItem(TOKEN_KEY);}
+function showCloudAlert(msg,type){
+  const el=document.getElementById('cloud-alert');
+  if(!el)return;
+  el.style.display='block';
+  el.style.background=type==='ok'?'var(--green-bg)':'var(--red-bg)';
+  el.style.color=type==='ok'?'var(--green)':'var(--red)';
+  el.textContent=msg;
+}
 
 async function saveData(){
   try{localStorage.setItem(STORAGE_KEY,JSON.stringify(allData));}catch(e){}
@@ -443,8 +473,12 @@ function handleFiles(files){
           selectedMonth=keys[keys.length-1];
           const saveResult=await saveData();
           const pushed=saveResult===true;
-          const cloudMsg=getToken()?(pushed?'☁️ クラウド保存完了':'⚠️ クラウド保存失敗'+(saveResult?.msg?' ('+saveResult.msg+')':'')):'';
-          addLog(f.name,keys.length+'ヶ月分のデータを読み込みました'+(cloudMsg?' '+cloudMsg:''),true);
+          let cloudMsg,cloudType;
+          if(!getToken()){cloudMsg='⚠️ GitHubトークン未設定 — このブラウザにのみ保存。スマホ等には反映されません。';cloudType='err';}
+          else if(pushed){cloudMsg='☁️ クラウド保存完了 — スマホでリロードすれば反映されます。';cloudType='ok';}
+          else{cloudMsg='⚠️ クラウド保存に失敗しました'+(saveResult&&saveResult.msg?'（'+saveResult.msg+'）':'')+' — トークンが無効か期限切れの可能性があります。下の設定でトークンを入れ直してください。';cloudType='err';}
+          addLog(f.name,keys.length+'ヶ月分のデータを読み込みました',true);
+          showCloudAlert(cloudMsg,cloudType);
           renderAll();
         } else {
           // 旧形式フォールバック
@@ -887,23 +921,27 @@ function renderDataList(){
 }
 
 function delMonth(k){delete allData[k];if(selectedMonth===k)selectedMonth=sortedMonths()[0]||null;saveData();renderAll();}
-async function manualSync(){
-  if(!getToken()){alert('トークンが設定されていません');return;}
-  const btn=event.target;btn.textContent='☁️ 保存中...';btn.disabled=true;
-  await saveData();
-  btn.textContent='☁️ 今すぐクラウドに保存';btn.disabled=false;
-  alert('クラウドへの保存が完了しました！携帯でリロードしてください。');
+async function manualSync(btn){
+  if(!getToken()){showCloudAlert('⚠️ GitHubトークンが未設定です。上の欄にトークンを貼って「保存」を押してください。','err');return;}
+  if(btn){btn.textContent='☁️ 保存中...';btn.disabled=true;}
+  const r=await saveData();
+  if(btn){btn.textContent='☁️ 今すぐクラウドに保存';btn.disabled=false;}
+  if(r===true)showCloudAlert('☁️ クラウド保存完了 — スマホでリロードすれば反映されます。','ok');
+  else showCloudAlert('⚠️ クラウド保存に失敗しました'+(r&&r.msg?'（'+r.msg+'）':'')+' — トークンが無効か期限切れの可能性があります。','err');
 }
 function clearAllData(){if(confirm('全データを削除しますか？')){allData={};selectedMonth=null;localStorage.removeItem(STORAGE_KEY);saveData();renderAll();updateDataStatus();}}
 
-function saveToken(){
+async function saveToken(){
   const t=document.getElementById('token-input').value.trim();
-  if(!t){alert('トークンを入力してください');return;}
+  if(!t){showCloudAlert('トークンを入力してください','err');return;}
   setToken(t);
   document.getElementById('token-input').value='';
   updateTokenStatus();
   updateDataStatus();
-  alert('トークンを保存しました！次回Excelアップロード時から自動でクラウドに保存されます。');
+  showCloudAlert('トークンを保存しました。動作確認のためクラウドに保存しています…','ok');
+  const r=await saveData();
+  if(r===true)showCloudAlert('✅ トークンOK — クラウド保存に成功しました。以降アップロードすると自動で同期されます。','ok');
+  else showCloudAlert('⚠️ このトークンではクラウド保存に失敗しました'+(r&&r.msg?'（'+r.msg+'）':'')+' — トークンの権限（対象リポジトリ・Contents: Read and write）を確認してください。','err');
 }
 function clearToken(){
   setToken('');
