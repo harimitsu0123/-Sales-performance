@@ -290,6 +290,7 @@ async function loadFromGitHub(){
       // クラウドとローカルをマージ（どちらか片方にしかないキーも保持）
       allData={...d,...allData};
       normalizeLabels();
+      normalizeBrandNames();
       selectedMonth=Object.keys(allData).sort().pop()||null;
       return true;
     }
