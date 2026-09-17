@@ -663,9 +663,10 @@ function targetNameCandidates(name){
   return[n];
 }
 // 年間目標プランを既存データにマージ（単月/累積それぞれのtargetを埋めて達成率を再計算）
+// 実績データがまだ無い月も、目標だけ入った空の月として作っておく（後で実績が来たらmergeTargetsが引き継ぐ）
 function applyYearlyTargets(parsed){
   const{year,blocks}=parsed;
-  const updated=new Set(),skipped=new Set(),touched=new Set();
+  const updated=new Set(),created=new Set(),touched=new Set();
   Object.keys(blocks).forEach(blockType=>{
     const section=blockType.includes('累')?'ruikei':'tangetsu';
     blocks[blockType].forEach(({name,vals})=>{
@@ -674,10 +675,17 @@ function applyYearlyTargets(parsed){
         const val=vals[m-1];
         if(val==null)continue;
         const monthKey=year+'-'+String(m).padStart(2,'0');
+        if(!allData[monthKey]){
+          allData[monthKey]={monthKey,label:m+'月',tangetsu:[],ruikei:[]};
+          created.add(monthKey);
+        }
         const d=allData[monthKey];
-        if(!d||!d[section]||!d[section].length){skipped.add(monthKey);continue;}
-        const row=d[section].find(r=>candidates.includes(normBrand(r.name)));
-        if(!row)continue;
+        if(!d[section])d[section]=[];
+        let row=d[section].find(r=>candidates.includes(normBrand(r.name)));
+        if(!row){
+          row={name,y2025:0,y2026:0,target:null,yoy:null,ach:null,gap:null};
+          d[section].push(row);
+        }
         row.target=Math.round(val);
         row.ach=row.target>0?(row.y2026||0)/row.target*100:null;
         row.gap=Math.round((row.y2026||0)-row.target);
