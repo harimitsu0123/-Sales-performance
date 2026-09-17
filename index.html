@@ -490,7 +490,7 @@ function handleFiles(files){
         const rowsT=XLSX.utils.sheet_to_json(wbT.Sheets[wbT.SheetNames[0]],{header:1,defval:null});
         const yearlyTarget=parseYearlyTargetExcel(rowsT,f.name);
         if(yearlyTarget){
-          const{updated,skipped:skippedYT}=applyYearlyTargets(yearlyTarget);
+          const{updated,created}=applyYearlyTargets(yearlyTarget);
           if(updated.length){
             normalizeLabels();
             const saveResult=await saveData();
@@ -500,11 +500,11 @@ function handleFiles(files){
             else if(pushed){cloudMsg='☁️ クラウド保存完了 — スマホでリロードすれば反映されます。';cloudType='ok';}
             else{cloudMsg='⚠️ クラウド保存に失敗しました'+(saveResult&&saveResult.msg?'（'+saveResult.msg+'）':'')+' — トークンが無効か期限切れの可能性があります。';cloudType='err';}
             addLog(f.name,'目標データを反映しました（'+updated.map(mlabel).join('・')+'）',true);
+            if(created.length)addNote('📌 '+created.map(mlabel).join('・')+' はまだ売上データが無いため、目標だけ保存しました。後で売上（比較売上/単月・累計）をアップロードすると自動でつながります。',false);
             showCloudAlert(cloudMsg,cloudType);
           } else {
-            addLog(f.name,null,false,'対象の月データがまだありません。先に売上データをアップロードしてください。');
+            addLog(f.name,null,false,'目標を読み取れませんでした。ファイルの形式を確認してください。');
           }
-          if(skippedYT.length)addNote('⚠️ '+skippedYT.map(mlabel).join('・')+' は売上データが無いため目標を反映できませんでした。先に売上（比較売上/単月・累計）をアップロードしてから、もう一度この目標ファイルを入れ直してください。',true);
           renderAll();
           return;
         }
