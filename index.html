@@ -96,6 +96,7 @@ tbody tr:hover:not(:last-child){background:#faf9f7}
   .table-card{overflow-x:auto;-webkit-overflow-scrolling:touch}
   .table-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
   .grid-2{grid-template-columns:1fr}
+  .grid-2>div{min-width:0}
   .metric-grid{grid-template-columns:1fr 1fr}
   .page-title{font-size:16px}
   .topbar{margin-bottom:1rem}
@@ -108,6 +109,7 @@ tbody tr:hover:not(:last-child){background:#faf9f7}
   div[style*="grid-template-columns:2fr 1fr 1fr"] .metric-label{font-size:10px}
   div[style*="grid-template-columns:2fr 1fr 1fr"] .metric-card{padding:10px 8px}
   .allmonths-grid{grid-template-columns:1fr!important}
+  .allmonths-grid>div{min-width:0}
 }
 @media print{
   .sidebar,.print-btn,.month-chip,.month-label,.topbar button,.view-tabs,.month-bar,.brand-filter{display:none!important}
