@@ -1401,6 +1401,11 @@ function showPage(name,btn){
   if(btn){btn.classList.add('active');}
   else{document.querySelectorAll('.nav-btn').forEach(b=>{if(b.getAttribute('onclick')&&b.getAttribute('onclick').includes("'"+name+"'"))b.classList.add('active');});}
   location.hash=name;
+  // 非表示の間に描画されたグラフはサイズが正しく取れず潰れることがあるため、表示時に再描画する
+  if(name==='overview')renderOverview();
+  else if(name==='allmonths')renderAllMonths();
+  else if(name==='trend')renderTrend();
+  else if(name==='brand')renderBrand();
 }
 // ページ読み込み時にハッシュからページを復元
 (function(){
