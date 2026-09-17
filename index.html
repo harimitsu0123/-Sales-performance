@@ -522,6 +522,7 @@ function handleFiles(files){
           const{updated,created}=applyYearlyTargets(yearlyTarget);
           if(updated.length){
             normalizeLabels();
+            normalizeBrandNames();
             const saveResult=await saveData();
             const pushed=saveResult===true;
             let cloudMsg,cloudType;
