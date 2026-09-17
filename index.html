@@ -565,6 +565,7 @@ function handleFiles(files){
             }
           });
           normalizeLabels();
+          normalizeBrandNames();
           selectedMonth=keys[keys.length-1];
           const saveResult=await saveData();
           const pushed=saveResult===true;
