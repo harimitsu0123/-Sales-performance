@@ -302,7 +302,33 @@ function normalizeLabels(){
     if(d.label)d.label=d.label.replace(/^\d{4}\//,'');
   });
 }
-function loadData(){try{const s=localStorage.getItem(STORAGE_KEY);if(s){allData=JSON.parse(s);normalizeLabels();reapplyTargets();}}catch(e){}}
+// ブランド名の表記揺れ（MAG→MAGBITEへの改名等）で同じ月に2行できてしまった場合に1つへ統合する
+function normalizeBrandNames(){
+  Object.values(allData).forEach(d=>{
+    ['tangetsu','ruikei'].forEach(sec=>{
+      const arr=d[sec];if(!arr||!arr.length)return;
+      const magIdx=arr.findIndex(r=>r.name==='MAG');
+      if(magIdx<0)return;
+      const mag=arr[magIdx];
+      const biteIdx=arr.findIndex(r=>r.name==='MAGBITE');
+      if(biteIdx<0){
+        mag.name='MAGBITE';
+      } else {
+        const bite=arr[biteIdx];
+        if(!bite.y2026&&mag.y2026){bite.y2025=mag.y2025;bite.y2026=mag.y2026;bite.yoy=mag.yoy;}
+        if(bite.target==null&&mag.target!=null){
+          bite.target=mag.target;
+          bite.ach=bite.target>0?(bite.y2026||0)/bite.target*100:null;
+          bite.gap=Math.round((bite.y2026||0)-bite.target);
+        }
+        arr.splice(magIdx,1);
+      }
+    });
+    applyGroupTargets(d.tangetsu||[]);
+    applyGroupTargets(d.ruikei||[]);
+  });
+}
+function loadData(){try{const s=localStorage.getItem(STORAGE_KEY);if(s){allData=JSON.parse(s);normalizeLabels();normalizeBrandNames();reapplyTargets();}}catch(e){}}
 function reapplyTargets(){Object.values(allData).forEach(d=>{applyGroupTargets(d.tangetsu||[]);applyGroupTargets(d.ruikei||[]);});}
 let allData={};
 loadData();
