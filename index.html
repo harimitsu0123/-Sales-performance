@@ -724,7 +724,7 @@ function applyYearlyTargets(parsed){
         if(!d[section])d[section]=[];
         let row=d[section].find(r=>candidates.includes(normBrand(r.name)));
         if(!row){
-          row={name,y2025:0,y2026:0,target:null,yoy:null,ach:null,gap:null};
+          row={name:canonicalBrandName(name),y2025:0,y2026:0,target:null,yoy:null,ach:null,gap:null};
           d[section].push(row);
         }
         row.target=Math.round(val);
