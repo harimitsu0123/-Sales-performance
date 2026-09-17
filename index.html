@@ -516,17 +516,22 @@ function handleFiles(files){
           keys.forEach(k=>{
             const gotTan=months[k].tangetsu&&months[k].tangetsu.length>0;
             const gotRui=months[k].ruikei&&months[k].ruikei.length>0;
+            const oldTan=allData[k]?allData[k].tangetsu:null;
+            const oldRui=allData[k]?allData[k].ruikei:null;
             if(allData[k]){
-              // 単月・累計を別々にマージ（送ったほうだけ更新、もう片方は保持）
-              if(gotTan)allData[k].tangetsu=months[k].tangetsu;
-              if(gotRui)allData[k].ruikei=months[k].ruikei;
+              // 単月・累計を別々にマージ（送ったほうだけ更新、もう片方は保持／既存の目標があれば引き継ぐ）
+              if(gotTan)allData[k].tangetsu=mergeTargets(oldTan,months[k].tangetsu);
+              if(gotRui)allData[k].ruikei=mergeTargets(oldRui,months[k].ruikei);
               allData[k].label=months[k].label;
             } else {
               allData[k]=months[k];
             }
-            // 単月が送られてこなかった月は、累計の前月差分から自動計算する
+            // 単月が送られてこなかった月は、累計の前月差分から自動計算する（既存の目標があれば引き継ぐ）
             if(!gotTan&&gotRui){
-              if(deriveTangetsuFromRuikei(k))derived.push(k);else skipped.push(k);
+              if(deriveTangetsuFromRuikei(k)){
+                allData[k].tangetsu=mergeTargets(oldTan,allData[k].tangetsu);
+                derived.push(k);
+              }else skipped.push(k);
             }
           });
           normalizeLabels();
