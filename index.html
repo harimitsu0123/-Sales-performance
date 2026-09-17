@@ -1,5 +1,5 @@
 ﻿<!DOCTYPE html>
-<!-- updated 2026-09-14: layout reorder + auto-derive tangetsu from ruikei diff -->
+<!-- updated 2026-09-17: yearly target-plan import (2026売上目標.xlsx形式) -->
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
@@ -483,7 +483,33 @@ function handleFiles(files){
     const r=new FileReader();
     r.onload=async e=>{
       try{
-        const months=parseAllExcel(new Uint8Array(e.target.result),new Date(),f.name);
+        const buf=new Uint8Array(e.target.result);
+
+        // 年間目標プラン形式（例: 2026売上目標.xlsx）は専用処理でtargetだけをマージする
+        const wbT=XLSX.read(buf,{type:'array'});
+        const rowsT=XLSX.utils.sheet_to_json(wbT.Sheets[wbT.SheetNames[0]],{header:1,defval:null});
+        const yearlyTarget=parseYearlyTargetExcel(rowsT,f.name);
+        if(yearlyTarget){
+          const{updated,skipped:skippedYT}=applyYearlyTargets(yearlyTarget);
+          if(updated.length){
+            normalizeLabels();
+            const saveResult=await saveData();
+            const pushed=saveResult===true;
+            let cloudMsg,cloudType;
+            if(!getToken()){cloudMsg='⚠️ GitHubトークン未設定 — このブラウザにのみ保存。スマホ等には反映されません。';cloudType='err';}
+            else if(pushed){cloudMsg='☁️ クラウド保存完了 — スマホでリロードすれば反映されます。';cloudType='ok';}
+            else{cloudMsg='⚠️ クラウド保存に失敗しました'+(saveResult&&saveResult.msg?'（'+saveResult.msg+'）':'')+' — トークンが無効か期限切れの可能性があります。';cloudType='err';}
+            addLog(f.name,'目標データを反映しました（'+updated.map(mlabel).join('・')+'）',true);
+            showCloudAlert(cloudMsg,cloudType);
+          } else {
+            addLog(f.name,null,false,'対象の月データがまだありません。先に売上データをアップロードしてください。');
+          }
+          if(skippedYT.length)addNote('⚠️ '+skippedYT.map(mlabel).join('・')+' は売上データが無いため目標を反映できませんでした。先に売上（比較売上/単月・累計）をアップロードしてから、もう一度この目標ファイルを入れ直してください。',true);
+          renderAll();
+          return;
+        }
+
+        const months=parseAllExcel(buf,new Date(),f.name);
         const keys=Object.keys(months);
         if(keys.length>0){
           const derived=[],skipped=[];
@@ -518,7 +544,7 @@ function handleFiles(files){
           renderAll();
         } else {
           // 旧形式フォールバック
-          const d=parseExcel(new Uint8Array(e.target.result),f.name);
+          const d=parseExcel(buf,f.name);
           allData[d.monthKey]=d;selectedMonth=d.monthKey;
           addLog(f.name,d.monthKey,true);renderAll();
         }
@@ -593,6 +619,78 @@ function parseHikakuExcel(rows,fileDate,fileName){
     tangetsu:isSingle?section:[],
     ruikei:isSingle?[]:section};
   return result;
+}
+
+// 年間目標プラン形式を検出（例: 2026売上目標.xlsx — ブランド×月で列が並ぶ表、単月/累積の2ブロック）
+// ヘッダー行に "1月"〜"12月" が連続して並んでいるかで判定する
+function parseYearlyTargetExcel(rows,fileName){
+  let headerRow=-1,monthCol=-1;
+  for(let i=0;i<rows.length&&headerRow<0;i++){
+    const r=rows[i];if(!r)continue;
+    for(let j=0;j<r.length;j++){
+      if(String(r[j]||'').trim()!=='1月')continue;
+      let ok=true;
+      for(let m=2;m<=12;m++){if(String(r[j+m-1]||'').trim()!==m+'月'){ok=false;break;}}
+      if(ok){headerRow=i;monthCol=j;break;}
+    }
+  }
+  if(headerRow<0)return null;
+
+  const brandCol=monthCol-2,markerCol=monthCol-3;
+  const ym=String(fileName||'').match(/(20\d{2})/);
+  const year=ym?parseInt(ym[1]):new Date().getFullYear();
+
+  const blocks={};
+  let curType=null;
+  for(let i=headerRow+1;i<rows.length;i++){
+    const r=rows[i];if(!r)continue;
+    const marker=String(r[markerCol]||'').trim();
+    if(marker)curType=marker;
+    const name=String(r[brandCol]||'').trim();
+    if(!name||!curType)continue;
+    const vals=[];
+    for(let m=0;m<12;m++)vals.push(toN(r[monthCol+m]));
+    if(!blocks[curType])blocks[curType]=[];
+    blocks[curType].push({name,vals});
+  }
+  if(!Object.keys(blocks).length)return null;
+  return{year,blocks};
+}
+// ブランド名の表記揺れ（過去にMAG→MAGBITEへ改名等）を目標マッチング時だけ吸収する
+function targetNameCandidates(name){
+  const n=normBrand(String(name||'').trim());
+  if(n==='MAG'||n==='MAGBITE')return['MAG','MAGBITE'];
+  return[n];
+}
+// 年間目標プランを既存データにマージ（単月/累積それぞれのtargetを埋めて達成率を再計算）
+function applyYearlyTargets(parsed){
+  const{year,blocks}=parsed;
+  const updated=new Set(),skipped=new Set(),touched=new Set();
+  Object.keys(blocks).forEach(blockType=>{
+    const section=blockType.includes('累')?'ruikei':'tangetsu';
+    blocks[blockType].forEach(({name,vals})=>{
+      const candidates=targetNameCandidates(name);
+      for(let m=1;m<=12;m++){
+        const val=vals[m-1];
+        if(val==null)continue;
+        const monthKey=year+'-'+String(m).padStart(2,'0');
+        const d=allData[monthKey];
+        if(!d||!d[section]||!d[section].length){skipped.add(monthKey);continue;}
+        const row=d[section].find(r=>candidates.includes(normBrand(r.name)));
+        if(!row)continue;
+        row.target=Math.round(val);
+        row.ach=row.target>0?(row.y2026||0)/row.target*100:null;
+        row.gap=Math.round((row.y2026||0)-row.target);
+        updated.add(monthKey);
+        touched.add(monthKey+'|'+section);
+      }
+    });
+  });
+  touched.forEach(key=>{
+    const[mk,sec]=key.split('|');
+    applyGroupTargets(allData[mk][sec]);
+  });
+  return{updated:[...updated].sort(),skipped:[...skipped].filter(k=>!updated.has(k)).sort()};
 }
 
 function parseAllExcel(buf,fileDate,fileName){
