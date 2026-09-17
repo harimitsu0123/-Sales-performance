@@ -698,6 +698,11 @@ function targetNameCandidates(name){
   if(n==='MAG'||n==='MAGBITE')return['MAG','MAGBITE'];
   return[n];
 }
+// 新規行を作る際に使う正式名（MAGは現行名のMAGBITEに統一する）
+function canonicalBrandName(name){
+  const n=normBrand(String(name||'').trim());
+  return n==='MAG'?'MAGBITE':n;
+}
 // 年間目標プランを既存データにマージ（単月/累積それぞれのtargetを埋めて達成率を再計算）
 // 実績データがまだ無い月も、目標だけ入った空の月として作っておく（後で実績が来たらmergeTargetsが引き継ぐ）
 function applyYearlyTargets(parsed){
