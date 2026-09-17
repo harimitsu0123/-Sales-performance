@@ -698,7 +698,26 @@ function applyYearlyTargets(parsed){
     const[mk,sec]=key.split('|');
     applyGroupTargets(allData[mk][sec]);
   });
-  return{updated:[...updated].sort(),skipped:[...skipped].filter(k=>!updated.has(k)).sort()};
+  return{updated:[...updated].sort(),created:[...created].sort()};
+}
+// 実績Excel再アップロード時、新データにtargetが無ければ既存データのtargetを引き継ぐ
+// （目標だけ先に保存していた月に、後から実績が来たときに消えないようにする）
+function mergeTargets(oldSection,newSection){
+  if(!oldSection||!oldSection.length||!newSection||!newSection.length)return newSection;
+  const oldMap={};
+  oldSection.forEach(r=>{oldMap[normBrand(r.name)]=r;});
+  newSection.forEach(r=>{
+    if(r.target==null){
+      const old=oldMap[normBrand(r.name)];
+      if(old&&old.target!=null){
+        r.target=old.target;
+        r.ach=r.target>0?(r.y2026||0)/r.target*100:null;
+        r.gap=Math.round((r.y2026||0)-r.target);
+      }
+    }
+  });
+  applyGroupTargets(newSection);
+  return newSection;
 }
 
 function parseAllExcel(buf,fileDate,fileName){
