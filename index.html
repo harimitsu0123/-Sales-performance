@@ -291,6 +291,7 @@ async function loadFromGitHub(){
       allData={...d,...allData};
       normalizeLabels();
       normalizeBrandNames();
+      fixInvalidTangetsu();
       selectedMonth=Object.keys(allData).sort().pop()||null;
       return true;
     }
@@ -329,7 +330,7 @@ function normalizeBrandNames(){
     applyGroupTargets(d.ruikei||[]);
   });
 }
-function loadData(){try{const s=localStorage.getItem(STORAGE_KEY);if(s){allData=JSON.parse(s);normalizeLabels();normalizeBrandNames();reapplyTargets();}}catch(e){}}
+function loadData(){try{const s=localStorage.getItem(STORAGE_KEY);if(s){allData=JSON.parse(s);normalizeLabels();normalizeBrandNames();fixInvalidTangetsu();reapplyTargets();}}catch(e){}}
 function reapplyTargets(){Object.values(allData).forEach(d=>{applyGroupTargets(d.tangetsu||[]);applyGroupTargets(d.ruikei||[]);});}
 let allData={};
 loadData();
@@ -502,9 +503,20 @@ function deriveTangetsuFromRuikei(monthKey){
     const yoy=y2025!==0?y2026/y2025*100:null;
     return{name:r.name,y2025,y2026,target:null,yoy,ach:null,gap:null};
   });
+  // 累計が前月より減っている（＝ブランド区分が違う等でデータの整合性が取れていない）場合は
+  // マイナスの単月を作ってしまうので、自動計算は行わない
+  const tot=tan.find(r=>r.name.includes('総'));
+  if(tot&&(tot.y2026<0||tot.y2025<0))return false;
   applyGroupTargets(tan);
   d.tangetsu=tan;
   return true;
+}
+// 過去にマイナスの単月が自動計算されてしまっていた月をクリアする（一度だけ直せば十分な修復処理）
+function fixInvalidTangetsu(){
+  Object.values(allData).forEach(d=>{
+    const tot=(d.tangetsu||[]).find(r=>r.name.includes('総'));
+    if(tot&&(tot.y2026<0||tot.y2025<0))d.tangetsu=[];
+  });
 }
 
 function handleFiles(files){
@@ -523,6 +535,7 @@ function handleFiles(files){
           if(updated.length){
             normalizeLabels();
             normalizeBrandNames();
+            fixInvalidTangetsu();
             const saveResult=await saveData();
             const pushed=saveResult===true;
             let cloudMsg,cloudType;
@@ -566,6 +579,7 @@ function handleFiles(files){
           });
           normalizeLabels();
           normalizeBrandNames();
+          fixInvalidTangetsu();
           selectedMonth=keys[keys.length-1];
           const saveResult=await saveData();
           const pushed=saveResult===true;
