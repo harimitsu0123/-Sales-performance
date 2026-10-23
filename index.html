@@ -235,10 +235,10 @@ function saveData(){
 function updateDataStatus(state){
   const el=document.getElementById('data-status');
   if(!el)return;
-  const n=Object.keys(allData).length;
+  const n=sortedMonths().length;
   if(n===0){el.innerHTML='データなし';el.style.color='';}
   else{
-    const latest=Object.keys(allData).sort().pop();
+    const latest=latestMonthKey();
     const syncIcon=getToken()?(state==='pushed'?'☁️ 同期済み':'⚠️ 未同期'):'💾 このブラウザのみ';
     el.innerHTML=`✅ ${n}ヶ月分<br><span style="font-size:10px">最新: ${allData[latest].label}</span><br><span style="font-size:10px">${syncIcon}</span>`;
     el.style.color='var(--green)';
@@ -292,7 +292,7 @@ async function loadFromGitHub(){
       normalizeLabels();
       normalizeBrandNames();
       fixInvalidTangetsu();
-      selectedMonth=Object.keys(allData).sort().pop()||null;
+      selectedMonth=latestMonthKey();
       return true;
     }
   }catch(e){}
@@ -334,7 +334,7 @@ function loadData(){try{const s=localStorage.getItem(STORAGE_KEY);if(s){allData=
 function reapplyTargets(){Object.values(allData).forEach(d=>{applyGroupTargets(d.tangetsu||[]);applyGroupTargets(d.ruikei||[]);});}
 let allData={};
 loadData();
-let selectedMonth=Object.keys(allData).sort().pop()||null;
+let selectedMonth=latestMonthKey();
 let activeTrendBrands=new Set();
 
 // GitHubから最新データを取得してページ起動（ローカルとマージして保存）
@@ -1080,7 +1080,13 @@ function renderAnalysis(){
     </div>`;
 }
 
-function sortedMonths(){return Object.keys(allData).sort();}
+// 売上実績がある月か（目標だけ先に保存した月は false）
+function hasSales(d){
+  return [...(d.tangetsu||[]),...(d.ruikei||[])].some(r=>(r.y2026||0)!==0);
+}
+// 画面表示に使う月（売上データがある月のみ）
+function sortedMonths(){return Object.keys(allData).filter(k=>hasSales(allData[k])).sort();}
+function latestMonthKey(){return sortedMonths().pop()||null;}
 
 function chipLabel(k){
   const mo=parseInt(k.split('-')[1]);
