@@ -291,7 +291,7 @@ async function loadFromGitHub(){
       allData={...d,...allData};
       normalizeLabels();
       normalizeBrandNames();
-      fixInvalidTangetsu();
+      fixInvalidTangetsu();restoreLegacy2024();
       selectedMonth=latestMonthKey();
       return true;
     }
@@ -330,7 +330,7 @@ function normalizeBrandNames(){
     applyGroupTargets(d.ruikei||[]);
   });
 }
-function loadData(){try{const s=localStorage.getItem(STORAGE_KEY);if(s){allData=JSON.parse(s);normalizeLabels();normalizeBrandNames();fixInvalidTangetsu();reapplyTargets();}}catch(e){}}
+function loadData(){try{const s=localStorage.getItem(STORAGE_KEY);if(s){allData=JSON.parse(s);normalizeLabels();normalizeBrandNames();fixInvalidTangetsu();restoreLegacy2024();reapplyTargets();}}catch(e){}}
 function reapplyTargets(){Object.values(allData).forEach(d=>{applyGroupTargets(d.tangetsu||[]);applyGroupTargets(d.ruikei||[]);});}
 let allData={};
 loadData();
@@ -521,6 +521,38 @@ function nextMonthKey(monthKey){
   const nm=m===12?1:m+1,ny=m===12?y+1:y;
   return ny+'-'+String(nm).padStart(2,'0');
 }
+// 2024年（＝2025年各月の「前年」列）のMAG・山波の数字。
+// 2024年は分社していて個別の実績が無く、当時は合算して集計していたため、
+// 新しいブランド区分で入れ直しても小さい数字（ほぼ0）になってしまう。前年比較用に当時の数字をそのまま使う。
+// ※MAGは現行名のMAGBITE行に入れる。2025年7月は壊れていた版ではなく、6月・8月と整合する版を採用。
+const LEGACY_2024={
+  '2025-03':{tan:{MAGBITE:18185972,'山波':1444827},rui:{MAGBITE:17670195,'山波':3984039}},
+  '2025-04':{tan:{MAGBITE:24947773,'山波':3732620},rui:{MAGBITE:95077033,'山波':11041184}},
+  '2025-05':{tan:{MAGBITE:24947773,'山波':3732620},rui:{MAGBITE:95077033,'山波':11041184}},
+  '2025-06':{tan:{MAGBITE:16315938,'山波':1237357},rui:{MAGBITE:111393565,'山波':12278541}},
+  '2025-07':{tan:{MAGBITE:18245471,'山波':3567686},rui:{MAGBITE:129639036,'山波':15846227}},
+  '2025-08':{tan:{MAGBITE:14370773,'山波':778368},rui:{MAGBITE:144009809,'山波':16624595}},
+  '2025-09':{tan:{MAGBITE:7518862,'山波':356823},rui:{MAGBITE:159367605,'山波':16981418}},
+  '2025-10':{tan:{MAGBITE:17517715,'山波':2690208},rui:{MAGBITE:176885320,'山波':19941626}},
+  '2025-11':{tan:{MAGBITE:18755322,'山波':1033195},rui:{MAGBITE:195640642,'山波':20974821}},
+  '2025-12':{tan:{MAGBITE:25730447,'山波':1513816},rui:{MAGBITE:221734238,'山波':22519711}}
+};
+// 何度実行しても同じ結果になる（入れ直しで上書きされても、次の読み込み・アップロード時に元に戻る）
+function restoreLegacy2024(){
+  Object.keys(LEGACY_2024).forEach(k=>{
+    const d=allData[k];if(!d)return;
+    [['tan','tangetsu'],['rui','ruikei']].forEach(([s,sec])=>{
+      (d[sec]||[]).forEach(r=>{
+        const nm=r.name==='MAG'?'MAGBITE':r.name;
+        const v=LEGACY_2024[k][s][nm];
+        if(v!=null&&r.y2025!==v){
+          r.y2025=v;
+          r.yoy=v>0?(r.y2026||0)/v*100:null;
+        }
+      });
+    });
+  });
+}
 // 過去にマイナスの単月が自動計算されてしまっていた月をクリアする（一度だけ直せば十分な修復処理）
 function fixInvalidTangetsu(){
   Object.values(allData).forEach(d=>{
@@ -550,7 +582,7 @@ function readOneFile(f){
           if(updated.length){
             normalizeLabels();
             normalizeBrandNames();
-            fixInvalidTangetsu();
+            fixInvalidTangetsu();restoreLegacy2024();
             const saveResult=await saveData();
             const pushed=saveResult===true;
             let cloudMsg,cloudType;
@@ -608,7 +640,7 @@ function readOneFile(f){
           });
           normalizeLabels();
           normalizeBrandNames();
-          fixInvalidTangetsu();
+          fixInvalidTangetsu();restoreLegacy2024();
           selectedMonth=keys[keys.length-1];
           const saveResult=await saveData();
           const pushed=saveResult===true;
