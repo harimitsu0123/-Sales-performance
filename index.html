@@ -494,6 +494,9 @@ function deriveTangetsuFromRuikei(monthKey){
   if(!d||!d.ruikei||!d.ruikei.length)return false;
   const prev=allData[prevMonthKey(monthKey)];
   if(!prev||!prev.ruikei||!prev.ruikei.length)return false;
+  // 前月が「10/26」のような月の途中のデータだと、差分に前月末の数日分が混ざって単月が正しくならない
+  const pm=String(prev.label||'').match(/\/(\d+)$/);
+  if(pm&&parseInt(pm[1])<28)return false;
   const prevMap={};
   prev.ruikei.forEach(r=>{prevMap[r.name]=r;});
   const tan=d.ruikei.map(r=>{
@@ -589,7 +592,7 @@ function handleFiles(files){
           else{cloudMsg='⚠️ クラウド保存に失敗しました'+(saveResult&&saveResult.msg?'（'+saveResult.msg+'）':'')+' — トークンが無効か期限切れの可能性があります。下の設定でトークンを入れ直してください。';cloudType='err';}
           addLog(f.name,keys.length+'ヶ月分のデータを読み込みました',true);
           if(derived.length)addNote('🧮 単月を累計の差分から自動計算しました（'+derived.map(mlabel).join('・')+'）',false);
-          if(skipped.length)addNote('⚠️ 前月の累計データが無いため単月を自動計算できませんでした（'+skipped.map(mlabel).join('・')+'）。単月ファイルも合わせてアップロードしてください。',true);
+          if(skipped.length)addNote('⚠️ 前月が月末までの累計データではない（または無い）ため単月を自動計算できませんでした（'+skipped.map(mlabel).join('・')+'）。単月ファイルも合わせてアップロードしてください。',true);
           showCloudAlert(cloudMsg,cloudType);
           renderAll();
         } else {
