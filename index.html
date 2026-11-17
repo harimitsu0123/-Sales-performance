@@ -512,7 +512,14 @@ function deriveTangetsuFromRuikei(monthKey){
   if(tot&&(tot.y2026<0||tot.y2025<0))return false;
   applyGroupTargets(tan);
   d.tangetsu=tan;
+  d.tanDerived=true; // 単月は累計の差分から自動計算した値（前月が更新されたら計算し直す目印）
   return true;
+}
+// 次の暦月キーを返す（例: "2026-10" → "2026-11"）
+function nextMonthKey(monthKey){
+  const [y,m]=monthKey.split('-').map(Number);
+  const nm=m===12?1:m+1,ny=m===12?y+1:y;
+  return ny+'-'+String(nm).padStart(2,'0');
 }
 // 過去にマイナスの単月が自動計算されてしまっていた月をクリアする（一度だけ直せば十分な修復処理）
 function fixInvalidTangetsu(){
@@ -566,7 +573,7 @@ function handleFiles(files){
             const oldRui=allData[k]?allData[k].ruikei:null;
             if(allData[k]){
               // 単月・累計を別々にマージ（送ったほうだけ更新、もう片方は保持／既存の目標があれば引き継ぐ）
-              if(gotTan)allData[k].tangetsu=mergeTargets(oldTan,months[k].tangetsu);
+              if(gotTan){allData[k].tangetsu=mergeTargets(oldTan,months[k].tangetsu);allData[k].tanDerived=false;}
               if(gotRui)allData[k].ruikei=mergeTargets(oldRui,months[k].ruikei);
               allData[k].label=months[k].label;
             } else {
@@ -578,6 +585,19 @@ function handleFiles(files){
                 allData[k].tangetsu=mergeTargets(oldTan,allData[k].tangetsu);
                 derived.push(k);
               }else skipped.push(k);
+            }
+          });
+          // 前月の累計が更新された場合、翌月の単月（自動計算した値）も計算し直す
+          // （2ファイルを同時に入れて翌月が先に処理された時などに、単月がずれたままになるのを防ぐ）
+          keys.forEach(k=>{
+            const nk=nextMonthKey(k);
+            const nd=allData[nk];
+            if(nd&&nd.tanDerived&&nd.ruikei&&nd.ruikei.length&&!keys.includes(nk)){
+              const oldT=nd.tangetsu;
+              if(deriveTangetsuFromRuikei(nk)){
+                nd.tangetsu=mergeTargets(oldT,nd.tangetsu);
+                if(!derived.includes(nk))derived.push(nk);
+              }
             }
           });
           normalizeLabels();
