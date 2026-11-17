@@ -530,8 +530,13 @@ function fixInvalidTangetsu(){
 }
 
 function handleFiles(files){
-  Array.from(files).forEach(async f=>{
+  // 複数ファイルは選んだ順に1つずつ処理する（同時に処理すると順番が入れ替わり、単月の計算がずれるため）
+  Array.from(files).reduce((p,f)=>p.then(()=>readOneFile(f)),Promise.resolve());
+}
+function readOneFile(f){
+  return new Promise(resolve=>{
     const r=new FileReader();
+    r.onerror=()=>resolve();
     r.onload=async e=>{
       try{
         const buf=new Uint8Array(e.target.result);
@@ -623,6 +628,7 @@ function handleFiles(files){
           addLog(f.name,d.monthKey,true);renderAll();
         }
       }catch(err){addLog(f.name,null,false,err.message);}
+      finally{resolve();}
     };
     r.readAsArrayBuffer(f);
   });
