@@ -592,7 +592,8 @@ function handleFiles(files){
           keys.forEach(k=>{
             const nk=nextMonthKey(k);
             const nd=allData[nk];
-            if(nd&&nd.tanDerived&&nd.ruikei&&nd.ruikei.length&&!keys.includes(nk)){
+            const noTan=!(nd&&nd.tangetsu&&nd.tangetsu.length);
+            if(nd&&(nd.tanDerived||noTan)&&nd.ruikei&&nd.ruikei.length&&!keys.includes(nk)){
               const oldT=nd.tangetsu;
               if(deriveTangetsuFromRuikei(nk)){
                 nd.tangetsu=mergeTargets(oldT,nd.tangetsu);
